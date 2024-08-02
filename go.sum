@@ -1,2 +1,14 @@
 github.com/Knetic/govaluate v3.0.0+incompatible h1:7o6+MAPhYTCF0+fdvoz1xDedhRb4f6s9Tn1Tt7/WTEg=
 github.com/Knetic/govaluate v3.0.0+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
+github.com/kurogee/wagyu-script/array v0.0.0-20240802144602-e0a76ff82a60 h1:PDnCZ5SRWSXhrqaYdHQ1JCPMBtPFoV3Chk4pikpvrDM=
+github.com/kurogee/wagyu-script/array v0.0.0-20240802144602-e0a76ff82a60/go.mod h1:540xqUgRaGqKGv47LvRDFQaqRLLYHT4XmVOPb4Qnmek=
+github.com/kurogee/wagyu-script/date v0.0.0-20240802144602-e0a76ff82a60 h1:/5qquwS9qfcqR6b9aRgsFK2YD4XrJBTdgqHWKhrWXrI=
+github.com/kurogee/wagyu-script/date v0.0.0-20240802144602-e0a76ff82a60/go.mod h1:eppcZtOHKETqj945s1OlaYDG/1GHjn9DQDZZYPbrdZ8=
+github.com/kurogee/wagyu-script/file v0.0.0-20240802144602-e0a76ff82a60 h1:L4keRhWThku+b/XYkSa1tT5DeSsp1uFSdkwDdoWiwkk=
+github.com/kurogee/wagyu-script/file v0.0.0-20240802144602-e0a76ff82a60/go.mod h1:+bgWKivGUjQdzC29QWaxOMW4KlJmIUEmkm12wOF+Xps=
+github.com/kurogee/wagyu-script/get v0.0.0-20240802144602-e0a76ff82a60 h1:aNK0HOXPub4qv5WODyr5wWmA79qIdabVvcPYAOhux0U=
+github.com/kurogee/wagyu-script/get v0.0.0-20240802144602-e0a76ff82a60/go.mod h1:ZZlVk5YwvtP+oJte1ZFbdVSVSgBaYpErOkihmUV05WY=
+github.com/kurogee/wagyu-script/maths v0.0.0-20240802144602-e0a76ff82a60 h1:3Y0IXBkjNGghnJEU/sB1pHacqDsSeaqqNvr1c+BHP7Q=
+github.com/kurogee/wagyu-script/maths v0.0.0-20240802144602-e0a76ff82a60/go.mod h1:mPcxmIpCt7iQwOzvSDnpOFXZ3uQr7SomD5ktE1qVuV0=
+github.com/kurogee/wagyu-script/string v0.0.0-20240802144602-e0a76ff82a60 h1:1m0rroYe+I1ElJyl5YmZNTpl52e6wPJgG/ByWUkNmvI=
+github.com/kurogee/wagyu-script/string v0.0.0-20240802144602-e0a76ff82a60/go.mod h1:0sm84thWoDQcUba7yv0nSpS5YT1LC/Jtqk3PBBMMLO4=
