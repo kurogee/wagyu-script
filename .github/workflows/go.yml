@@ -31,5 +31,7 @@ jobs:
       run: |
         curl -sL https://git.io/goreleaser | bash
 
-    - name: Run Goreleaser
-      run: goreleaser release --snapshot --skip-publish --rm-dist
+    - name: Run GoReleaser
+      env:
+        GITHUB_TOKEN: ${{ secrets.WAGYU_TOKEN }}
+      run: goreleaser release --rm-dist
