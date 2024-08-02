@@ -31,9 +31,9 @@ jobs:
       run: |
         curl -sL https://git.io/goreleaser | bash
       env:
-        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Run GoReleaser
       env:
-        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: goreleaser release --snapshot --rm-dist
