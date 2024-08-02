@@ -26,3 +26,10 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+
+    - name: Install Goreleaser
+      run: |
+        curl -sL https://git.io/goreleaser | bash
+
+    - name: Run Goreleaser
+      run: goreleaser release --snapshot --skip-publish --rm-dist
