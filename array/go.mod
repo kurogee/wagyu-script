@@ -1,3 +1,3 @@
-module array
+module array/v1.0.0
 
 go 1.22.5
