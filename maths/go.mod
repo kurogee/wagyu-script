@@ -1,3 +1,3 @@
-module wagyu_script_math_sharp_functions
+module maths
 
 go 1.22.5

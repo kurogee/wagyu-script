@@ -1,3 +1,3 @@
-module wagyu_script_date
+module date
 
 go 1.22.5

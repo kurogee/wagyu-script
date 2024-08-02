@@ -1,3 +1,3 @@
-module wagyu_script_file
+module file
 
 go 1.22.5

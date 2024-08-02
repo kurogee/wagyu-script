@@ -1,3 +1,3 @@
-module wagyu_script_string
+module string
 
 go 1.22.5

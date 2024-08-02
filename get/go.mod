@@ -1,3 +1,3 @@
-module wagyu_script_get
+module get
 
 go 1.22.5

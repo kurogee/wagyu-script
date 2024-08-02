@@ -8,13 +8,13 @@ import (
 	"math/rand/v2"
 	"os"
 
-	date_pack "github.com/kurogee/wagyu-script/wagyu_script_date"
-	get_pack "github.com/kurogee/wagyu-script/wagyu_script_get"
-	file_pack "github.com/kurogee/wagyu-script/wagyu_script_file"
-	array_pack "github.com/kurogee/wagyu-script/wagyu_script_array"
-	string_pack "github.com/kurogee/wagyu-script/wagyu_script_string"
+	date_pack "github.com/kurogee/wagyu-script/date"
+	get_pack "github.com/kurogee/wagyu-script/get"
+	file_pack "github.com/kurogee/wagyu-script/file"
+	array_pack "github.com/kurogee/wagyu-script/array"
+	string_pack "github.com/kurogee/wagyu-script/string"
 
-	math_sharp_functions "github.com/kurogee/wagyu-script/wagyu_script_math_sharp_functions"
+	math_sharp_functions "github.com/kurogee/wagyu-script/maths"
 
 	"github.com/Knetic/govaluate"
 )
