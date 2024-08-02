@@ -30,8 +30,6 @@ jobs:
     - name: Install Goreleaser
       run: |
         curl -sL https://git.io/goreleaser | bash
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Run GoReleaser
       env:
