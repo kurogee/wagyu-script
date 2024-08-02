@@ -25,7 +25,7 @@ nfpms:
     maintainer: "@kurogee"
     description: "Wagyu Script"
     license: MIT
-    vendor: "Your Company"
+    vendor: ""
     homepage: "https://example.com"
     bindir: /usr/local/bin
     contents:
