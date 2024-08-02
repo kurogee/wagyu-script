@@ -18,12 +18,16 @@ archives:
       - wagyu-script
 nfpms:
   - id: default
-    package: deb
+    formats:
+      - deb
+      - rpm
+      - exe
     maintainer: "@kurogee"
     description: "Wagyu Script"
     license: MIT
     vendor: "Your Company"
     homepage: "https://example.com"
     bindir: /usr/local/bin
-    files:
-      wagyu-script: /usr/local/bin/wagyu-script
+    contents:
+      - src: wagyu-script
+        dst: /usr/local/bin/wagyu-script
