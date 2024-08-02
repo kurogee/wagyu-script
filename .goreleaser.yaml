@@ -15,6 +15,9 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
 
+snapshot:
+  name_template: "{{ .Tag }}-SNAPSHOT"
+
 builds:
   - env:
       - CGO_ENABLED=0
@@ -31,12 +34,7 @@ archives:
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
-      {{- else }}{{ .Arch }}{{ end }}
-      {{- if .Arm }}v{{ .Arm }}{{ end }}
-    # use zip for windows archives
-    format_overrides:
-      - goos: windows
-        format: zip
+      {{- else }}{{ .Arch }}{{ end }}/...
 
 changelog:
   sort: asc
