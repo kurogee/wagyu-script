@@ -1,3 +1,3 @@
-module github.com/kurogee/wagyu-script/date/v1.0.0
+module github.com/kurogee/wagyu-script/date
 
 go 1.22.5
