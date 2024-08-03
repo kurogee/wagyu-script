@@ -34,34 +34,6 @@ func add_quotation(val string) string {
 	return val
 }
 
-/*
-func take_off_quotation(target string) string {
-	if strings.HasPrefix(target, "'") && strings.HasSuffix(target, "'") {
-		return strings.Trim(target, "'")
-	} else if strings.HasPrefix(target, "\"") && strings.HasSuffix(target, "\"") {
-		return strings.Trim(target, "\"")
-	}
-
-	return target
-}
-
-func variables_replacers(variables map[string]string, sentence string, targets []string) string {
-	var result string = sentence
-	var count int = 1
-	for _, target := range(targets) {
-		val, ok := variables[target]
-		if ok {
-			result = strings.ReplaceAll(result, ":" + strconv.Itoa(count) + ":", val)
-			count++
-		} else {
-			result = strings.ReplaceAll(result, ":" + strconv.Itoa(count) + ":", target)
-			count++
-		}
-	}
-
-	return result
-}*/
-
 func Run(name string, value []string, variables *map[string]string) {
 	// 基本的にvalue[0]は変数名
 	if name == "reset" {
@@ -79,7 +51,7 @@ func Run(name string, value []string, variables *map[string]string) {
 			fmt.Println("The variable is not found.")
 		}
 
-		(*variables)[value[0]] = strings.Join(strings.Split((*variables)[value[0]], value[1]), " ")
+		(*variables)[value[0]] = strings.Join(strings.Split(variables_replacer(*variables, value[1]), value[2]), " ")
 	} else if name == "addbeg" {
 		_, ok := (*variables)[value[0]]
 		if !ok {
@@ -190,5 +162,31 @@ func Run(name string, value []string, variables *map[string]string) {
 		}
 
 		(*variables)[value[0]] = strings.Join(slice, " ")
+	} else if name == "search" {
+		_, ok := (*variables)[value[0]]
+		if !ok {
+			fmt.Println("The error occurred in search function in array package. [1]")
+			fmt.Println("The variable is not found.")
+		}
+
+		_, ok2 := (*variables)[value[1]]
+		if !ok2 {
+			fmt.Println("The error occurred in search function in array package. [2]")
+			fmt.Println("The variable is not found.")
+		}
+
+		// 一回配列に戻す
+		slice := strings.Split((*variables)[value[1]], " ")
+
+		// 配列から値を検索し、そのインデックスをvalue[0]の変数に格納 なければ-1
+		index := -1
+		for i, val := range slice {
+			if val == variables_replacer(*variables, value[2]) {
+				index = i
+				break
+			}
+		}
+
+		(*variables)[value[0]] = strconv.Itoa(index)
 	}
 }

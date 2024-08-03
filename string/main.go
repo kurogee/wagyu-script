@@ -15,34 +15,6 @@ func variables_replacer(variables map[string]string, target string) string {
 	return target
 }
 
-/*
-func take_off_quotation(target string) string {
-	if strings.HasPrefix(target, "'") && strings.HasSuffix(target, "'") {
-		return strings.Trim(target, "'")
-	} else if strings.HasPrefix(target, "\"") && strings.HasSuffix(target, "\"") {
-		return strings.Trim(target, "\"")
-	}
-
-	return target
-}
-
-func variables_replacers(variables map[string]string, sentence string, targets []string) string {
-	var result string = sentence
-	var count int = 1
-	for _, target := range(targets) {
-		val, ok := variables[target]
-		if ok {
-			result = strings.ReplaceAll(result, ":" + strconv.Itoa(count) + ":", val)
-			count++
-		} else {
-			result = strings.ReplaceAll(result, ":" + strconv.Itoa(count) + ":", target)
-			count++
-		}
-	}
-
-	return result
-}*/
-
 func Run(name string, value []string, variables *map[string]string) {
 	if name == "replace" {
 		// value[0] = 変数名 value[1] = 対象の文字 value[1] = 置換前の文字列 value[2] = 置換後の文字列 value[3] = 置き換え回数
@@ -112,5 +84,26 @@ func Run(name string, value []string, variables *map[string]string) {
 		} else {
 			(*variables)[value[0]] = "false"
 		}
+	} else if name == "substr" {
+		// value[0] = 変数 [1] = 切り出したい文字 [2] = 切り出すはじめのインデックス [3] = 終わりのインデックス
+		start, err := strconv.Atoi(variables_replacer(*variables, value[2]))
+		if err != nil {
+			fmt.Println("The error occurred in substr function in string package. [1]")
+			fmt.Println(err)
+		}
+
+		length, err := strconv.Atoi(variables_replacer(*variables, value[3]))
+		if err != nil {
+			fmt.Println("The error occurred in substr function in string package. [2]")
+			fmt.Println(err)
+		}
+
+		str := variables_replacer(*variables, value[1])
+		if start < 0 || start >= len(str) || length < 0 || start+length > len(str) {
+			fmt.Println("The error occurred in substr function in string package. [3]")
+			fmt.Println("Invalid start or length value.")
+		}
+
+		(*variables)[value[0]] = str[start : start+length]
 	}
 }

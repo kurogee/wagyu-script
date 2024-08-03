@@ -834,8 +834,15 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 
 				(*variables)[value[1]] = result
 			} else if value[0] == "var" {
-				// value[1]の変数名で空の変数を作成
-				(*variables)[value[1]] = ""
+				if len(value) >= 3 {
+					// 値が複数ある場合は、それらをすべて変数名とみなし初期化する
+					for _, val := range(value[1:]) {
+						(*variables)[val] = ""
+					}
+				} else {
+					// value[1]の変数名で空の変数を作成
+					(*variables)[value[1]] = ""
+				}	
 			}
 		}
 
