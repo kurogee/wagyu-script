@@ -846,6 +846,60 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 			}
 		}
 
+		if name == "each" {
+			// value[0] は配列名、value[1] は回している配列の値を入れる変数名、value[2] は実行する中身
+			// 配列名が存在するか確認
+			var control string = ""
+
+			_, ok := (*variables)[value[0]]
+			if !ok {
+				fmt.Println("The error occurred in each(function). [1] / 配列名が見つからないためエラーが発生しました。")
+				fmt.Println("The array name is not found.")
+				return -1
+			}
+
+			// value[1]の変数名が既に存在する場合は、警告を出す
+			_, ok = (*variables)[value[1]]
+			if ok {
+				fmt.Println("The warning issued in each(function). [1] / [警告] 変数名がすでに存在するので、上書きされます。")
+				fmt.Println("The variable name is already exist.")
+			}
+
+			// 配列名が存在する場合は、その配列を取得
+			array := strings.Split((*variables)[value[0]], " ")
+
+			for _, val := range(array) {
+				(*variables)[value[1]] = val
+
+				codes := splitOutsideSemicolons(value[2])
+
+				for _, code := range(codes) {
+					p := parser(code)
+					status := p.runner(variables, functions, before_func_name, false)
+					if status == 2 {
+						control = "break"
+						break
+					} else if status == 3 {
+						control = "continue"
+						break
+					} else if status == 1 {
+						return 1
+					}
+				}
+
+				// もしbreakがあったら、eachを抜ける
+				if control == "break" {
+					break
+				} else if control == "continue" {
+					control = ""
+					continue
+				}
+			}
+
+			// eachが終わったら、value[1]の変数を削除
+			delete((*variables), value[1])
+		}
+
 		if name == "return" {
 			(*variables)["0__return__"] = value[0]
 			return 1
