@@ -245,10 +245,47 @@ func Sharp(func_name string, args []string, variables *map[string]string) string
 
 		// すべての要素が1回ずつ出現している場合は、一番最初の要素を返す
 		if len(modes) == len(nums_list) {
-			return "none"
+			return fmt.Sprintf("%f", nums_list[0])
 		}
 
 		return fmt.Sprintf("%v", modes)
+	} else if func_name == "floor" {
+		// args[0] ... 数値
+		num, err := strconv.ParseFloat(variables_replacer(*variables, args[0]), 64)
+		if err != nil {
+			fmt.Println("The error occurred in floor function in math package. [1]")
+			fmt.Println(err)
+			return ""
+		}
+
+		return fmt.Sprintf("%f", math.Floor(num))
+	} else if func_name == "ceil" {
+		// args[0] ... 数値
+		num, err := strconv.ParseFloat(variables_replacer(*variables, args[0]), 64)
+		if err != nil {
+			fmt.Println("The error occurred in ceil function in math package. [1]")
+			fmt.Println(err)
+			return ""
+		}
+
+		return fmt.Sprintf("%f", math.Ceil(num))
+	} else if func_name == "round" {
+		// args[0] ... 数値, args[1] ... 小数点以下の桁数
+		num, err := strconv.ParseFloat(variables_replacer(*variables, args[0]), 64)
+		if err != nil {
+			fmt.Println("The error occurred in round function in math package. [1]")
+			fmt.Println(err)
+			return ""
+		}
+
+		precision, err := strconv.ParseFloat(variables_replacer(*variables, args[1]), 64)
+		if err != nil {
+			fmt.Println("The error occurred in round function in math package. [2]")
+			fmt.Println(err)
+			return ""
+		}
+
+		return fmt.Sprintf("%f", math.Round(num * math.Pow(10, precision)) / math.Pow(10, precision))
 	}
 
 	return ""

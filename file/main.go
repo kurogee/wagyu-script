@@ -16,34 +16,6 @@ func variables_replacer(variables map[string]string, target string) string {
 	return target
 }
 
-/*
-func take_off_quotation(target string) string {
-	if strings.HasPrefix(target, "'") && strings.HasSuffix(target, "'") {
-		return strings.Trim(target, "'")
-	} else if strings.HasPrefix(target, "\"") && strings.HasSuffix(target, "\"") {
-		return strings.Trim(target, "\"")
-	}
-
-	return target
-}
-
-func variables_replacers(variables map[string]string, sentence string, targets []string) string {
-	var result string = sentence
-	var count int = 1
-	for _, target := range(targets) {
-		val, ok := variables[target]
-		if ok {
-			result = strings.ReplaceAll(result, ":" + strconv.Itoa(count) + ":", val)
-			count++
-		} else {
-			result = strings.ReplaceAll(result, ":" + strconv.Itoa(count) + ":", target)
-			count++
-		}
-	}
-
-	return result
-}*/
-
 func replaceSymbols(input string) string {
 	input = strings.ReplaceAll(input, "\n", "\\n")
 	input = strings.ReplaceAll(input, "\t", "\\t")
@@ -51,6 +23,16 @@ func replaceSymbols(input string) string {
 	input = strings.ReplaceAll(input, "\"", "\\\"")
 	input = strings.ReplaceAll(input, "'", "\\'")
 
+	return input
+}
+
+func giveSymbols(input string) string {
+	input = strings.ReplaceAll(input, "\\n", "\n")
+	input = strings.ReplaceAll(input, "\\t", "\t")
+	input = strings.ReplaceAll(input, "\\\\", "\\")
+	input = strings.ReplaceAll(input, "\\\"", "\"")
+	input = strings.ReplaceAll(input, "\\'", "'")
+	
 	return input
 }
 
@@ -71,31 +53,31 @@ func Run(name string, value []string, variables *map[string]string) {
 			return
 		}
 
-		(*variables)[value[1]] = string(strings.ReplaceAll(string(data), "\n", "\\n"))
+		(*variables)[value[1]] = string(giveSymbols(string(data)))
 	} else if name == "write" {
 		// value[0] ... 書き込むファイルのパス value[1] ... 書き込む値（変数もあり）
-		write_data := []byte(strings.ReplaceAll(variables_replacer(*variables, value[1]), "\\n", "\n"))
+		write_data := []byte(giveSymbols(variables_replacer(*variables, value[1])))
 		err := os.WriteFile(variables_replacer(*variables, value[0]), write_data, os.ModePerm)
 		if err != nil {
 			fmt.Println("The error occurred in write function in file package. [1]")
 			fmt.Println(err)
 			return
 		}
-	} else if name == "append" {
+	} else if name == "addend" {
 		// value[0] ... 追記するファイルのパス value[1] ... 追記する値（変数もあり）
-		append_data := strings.ReplaceAll(variables_replacer(*variables, value[1]), "\\n", "\n")
+		addend_data := giveSymbols(variables_replacer(*variables, value[1]))
 		file_data, err := os.ReadFile(variables_replacer(*variables, value[0]))
 		if err != nil {
-			fmt.Println("The error occurred in append function in file package. [1]")
+			fmt.Println("The error occurred in addend function in file package. [1]")
 			fmt.Println(err)
 			return
 		}
 
-		all_data := []byte(string(file_data) + append_data)
+		all_data := []byte(string(file_data) + addend_data)
 
 		err2 := os.WriteFile(variables_replacer(*variables, value[0]), all_data, os.ModePerm)
 		if err2 != nil {
-			fmt.Println("The error occurred in append function in file package. [2]")
+			fmt.Println("The error occurred in addend function in file package. [2]")
 			fmt.Println(err)
 			return
 		}

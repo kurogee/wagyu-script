@@ -81,7 +81,7 @@ func Run(name string, value []string, variables *map[string]string) {
 			fmt.Println("The variable is not found.")
 		}
 
-		index, err := strconv.Atoi(value[1])
+		index, err := strconv.Atoi(variables_replacer(*variables, value[1]))
 		if err != nil {
 			fmt.Println("The error occurred in add function in array package. [2]")
 			fmt.Println("The index is not integer.")
@@ -99,7 +99,7 @@ func Run(name string, value []string, variables *map[string]string) {
 			fmt.Println("The variable is not found.")
 		}
 
-		index, err := strconv.Atoi(value[1])
+		index, err := strconv.Atoi(variables_replacer(*variables, value[1]))
 		if err != nil {
 			fmt.Println("The error occurred in replace function in array package. [2]")
 			fmt.Println("The index is not integer.")
@@ -120,7 +120,7 @@ func Run(name string, value []string, variables *map[string]string) {
 			fmt.Println("The variable is not found.")
 		}
 
-		index, err := strconv.Atoi(value[1])
+		index, err := strconv.Atoi(variables_replacer(*variables, value[1]))
 		if err != nil {
 			fmt.Println("The error occurred in delnth function in array package. [2]")
 			fmt.Println("The index is not integer.")

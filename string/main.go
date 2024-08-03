@@ -85,7 +85,7 @@ func Run(name string, value []string, variables *map[string]string) {
 			(*variables)[value[0]] = "false"
 		}
 	} else if name == "substr" {
-		// value[0] = 変数 [1] = 切り出したい文字 [2] = 切り出すはじめのインデックス [3] = 終わりのインデックス
+		// value[0] = 変数 [1] = 切り出したい文字 [2] = 切り出すはじめのインデックス [3] = 切り出す文字数(長さ)
 		start, err := strconv.Atoi(variables_replacer(*variables, value[2]))
 		if err != nil {
 			fmt.Println("The error occurred in substr function in string package. [1]")
