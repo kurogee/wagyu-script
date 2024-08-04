@@ -10,4 +10,5 @@ require (
 	github.com/kurogee/wagyu-script/get v0.0.0-20240803135114-174b26800756
 	github.com/kurogee/wagyu-script/maths v0.0.0-20240803135114-174b26800756
 	github.com/kurogee/wagyu-script/string v0.0.0-20240803135114-174b26800756
+	github.com/kurogee/wagyu-script/regex v0.0.0-20240803135114-174b26800756
 )

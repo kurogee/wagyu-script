@@ -13,6 +13,7 @@ import (
 	file_pack "github.com/kurogee/wagyu-script/file"
 	array_pack "github.com/kurogee/wagyu-script/array"
 	string_pack "github.com/kurogee/wagyu-script/string"
+	regex_pack "github.com/kurogee/wagyu-script/regex"
 
 	math_sharp_functions "github.com/kurogee/wagyu-script/maths"
 
@@ -40,6 +41,7 @@ var packages = Package{
 	"file": file_pack.Run,
 	"array": array_pack.Run,
 	"string": string_pack.Run,
+	"regex": regex_pack.Run,
 }
 
 var packages_with_functions = Package_with_functions{
@@ -48,6 +50,7 @@ var packages_with_functions = Package_with_functions{
 
 var packages_sharp_functions = Package_sharp_functions{
 	"math": math_sharp_functions.Sharp,
+	"regex": regex_pack.Sharp,
 }
 
 func contains(s []string, e string) bool {
@@ -564,7 +567,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
     }
 
     for i, val := range(value) {
-		if name != "while" && name != "if" {
+		if name != "while" && name != "if" && name != "match" {
 			if strings.HasPrefix(val, "#") {
 				func_name := strings.Split(val, "(")[0][1:]
 				re := regexp.MustCompile(`^#[^\(]*\(|\)$`)
@@ -575,8 +578,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
     }
 	
     mem := &value
-    not_remove_list := []string{"if"}
-    if !contains(not_remove_list, name) {
+    if name != "if" {
         for i, val := range(*mem) {
             (*mem)[i] = take_off_quotation(val)
             if strings.HasPrefix(val, "(") && strings.HasSuffix(val, ")") {
@@ -847,57 +849,234 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		}
 
 		if name == "each" {
-			// value[0] は配列名、value[1] は回している配列の値を入れる変数名、value[2] は実行する中身
+			// value[0] は配列名、value[2] は回している配列の値を入れる変数名、value[3] は実行する中身
+			// value[1] は繰り返しの種類を識別するための記号
 			// 配列名が存在するか確認
 			var control string = ""
 
+			if value[1] == ">" {
 			_, ok := (*variables)[value[0]]
 			if !ok {
-				fmt.Println("The error occurred in each(function). [1] / 配列名が見つからないためエラーが発生しました。")
-				fmt.Println("The array name is not found.")
-				return -1
-			}
+					fmt.Println("The error occurred in each(function). [1] / 配列名が見つからないためエラーが発生しました。")
+					fmt.Println("The array name is not found.")
+					return -1
+				}
 
-			// value[1]の変数名が既に存在する場合は、警告を出す
-			_, ok = (*variables)[value[1]]
-			if ok {
-				fmt.Println("The warning issued in each(function). [1] / [警告] 変数名がすでに存在するので、上書きされます。")
-				fmt.Println("The variable name is already exist.")
-			}
+				// value[2]の変数名が既に存在する場合は、警告を出す
+				_, ok = (*variables)[value[2]]
+				if ok {
+					fmt.Println("The warning issued in each(function). [1] / [警告] 変数名がすでに存在するので、上書きされます。")
+					fmt.Println("The variable name is already exist.")
+				}
 
-			// 配列名が存在する場合は、その配列を取得
-			array := strings.Split((*variables)[value[0]], " ")
+				// 配列名が存在する場合は、その配列を取得
+				array := strings.Split((*variables)[value[0]], " ")
 
-			for _, val := range(array) {
-				(*variables)[value[1]] = take_off_quotation(val)
+				for _, val := range(array) {
+					(*variables)[value[2]] = take_off_quotation(val)
 
-				codes := splitOutsideSemicolons(value[2])
+					codes := splitOutsideSemicolons(value[3])
 
-				for _, code := range(codes) {
-					p := parser(code)
-					status := p.runner(variables, functions, before_func_name, false)
-					if status == 2 {
-						control = "break"
+					for _, code := range(codes) {
+						p := parser(code)
+						status := p.runner(variables, functions, before_func_name, false)
+						if status == 2 {
+							control = "break"
+							break
+						} else if status == 3 {
+							control = "continue"
+							break
+						} else if status == 1 {
+							return 1
+						}
+					}
+
+					// もしbreakがあったら、eachを抜ける
+					if control == "break" {
 						break
-					} else if status == 3 {
-						control = "continue"
-						break
-					} else if status == 1 {
-						return 1
+					} else if control == "continue" {
+						control = ""
+						continue
 					}
 				}
 
-				// もしbreakがあったら、eachを抜ける
-				if control == "break" {
-					break
-				} else if control == "continue" {
-					control = ""
-					continue
+				// eachが終わったら、value[2]の変数を削除
+				delete((*variables), value[2])
+			} else if value[1] == ":" {
+				// value[0] は配列名、value[2] は回している配列のインデックスを入れる変数名、value[3] は実行する中身
+				// 配列名が存在するか確認
+				_, ok := (*variables)[value[0]]
+				if !ok {
+					fmt.Println("The error occurred in each(function). [2] / 配列名が見つからないためエラーが発生しました。")
+					fmt.Println("The array name is not found.")
+					return -1
 				}
+
+				// value[2]の変数名が既に存在する場合は、警告を出す
+				_, ok = (*variables)[value[2]]
+				if ok {
+					fmt.Println("The warning issued in each(function). [2] / [警告] 変数名がすでに存在するので、上書きされます。")
+					fmt.Println("The variable name is already exist.")
+				}
+
+				// 配列名が存在する場合は、その配列を取得
+				array := strings.Split((*variables)[value[0]], " ")
+
+				for i := 0; i < len(array); i++ {
+					(*variables)[value[2]] = strconv.Itoa(i)
+
+					codes := splitOutsideSemicolons(value[3])
+
+					for _, code := range(codes) {
+						p := parser(code)
+						status := p.runner(variables, functions, before_func_name, false)
+						if status == 2 {
+							control = "break"
+							break
+						} else if status == 3 {
+							control = "continue"
+							break
+						} else if status == 1 {
+							return 1
+						}
+					}
+
+					// もしbreakがあったら、eachを抜ける
+					if control == "break" {
+						break
+					} else if control == "continue" {
+						control = ""
+						continue
+					}
+				}
+			} else {
+				fmt.Println("The error occurred in each(function). [3] / 繰り返しの種類が不明なためエラーが発生しました。")
+				fmt.Println("The type of repetition is unknown.")
+				return -1
+			}
+		}
+
+		if name == "match" {
+			// value[0] は条件式、value[1:] はcase文とそれが真だった場合の処理
+			// value[0]に#を含む関数があった場合は、その関数を実行してから条件式を評価する
+			var sharp string = ""
+
+			if strings.HasPrefix(value[0], "#") {
+				func_name := strings.Split(value[0], "(")[0][1:]
+				args := split(strings.Trim(strings.Split(value[0], "(")[1], ")"))
+				sharp = sharp_functions(func_name, args, variables)
+			} else {
+				value[0] = variables_replacer(variables, take_off_quotation(value[0]))
 			}
 
-			// eachが終わったら、value[1]の変数を削除
-			delete((*variables), value[1])
+			if sharp != "" {
+				value[0] = sharp
+			}
+
+			eval := calc_expression(variables_replacer(variables, value[0]), map[string]interface{}{})
+
+			var all_false bool = true
+			for i := 1; i < len(value); i += 1 {
+				if value[i] == "case" {
+					// value[i + 1] がシャープ関数だった場合は、その関数を実行してから評価する。その中の引数に「_」があったらそこに評価対象の値を入れる
+					// それ以外は変数の値と同じかどうかを評価する
+					var sharped bool = false
+
+					var sharp string = ""
+					for _, val := range(split(value[i + 1])) {
+						// シャープ関数の処理
+						if strings.HasPrefix(val, "#") {
+							func_name := strings.Split(val, "(")[0][1:]
+							args := split(strings.Trim(strings.Split(val, "(")[1], ")"))
+							for k, arg := range(args) {
+								if arg == "_" {
+									args[k] = eval
+								}
+							}
+
+							sharp = sharp_functions(func_name, args, variables)
+						}
+
+						if sharp != "" {
+							value[i + 1] = sharp
+							sharped = true
+						}
+					}
+
+					if len(value) > i + 2 {
+						// もしvalue[i + 1]が配列だった場合は、その配列の中にvalue[0]が含まれているかどうかを評価する
+						if len(strings.Split(value[i + 1], " ")) > 1 {
+							array := strings.Split(value[i + 1], " ")
+							if contains(array, value[0]) {
+								all_false = false
+
+								codes := splitOutsideSemicolons(value[i + 2])
+
+								for _, code := range(codes) {
+									p := parser(code)
+									status := p.runner(variables, functions, before_func_name, false)
+									if status == 1 {
+										return 1
+									} else if status == 2 {
+										return 2
+									} else if status == 3 {
+										return 3
+									}
+								}
+							}
+						} else if value[0] == value[i + 1] {
+							all_false = false
+
+							codes := splitOutsideSemicolons(value[i + 2])
+
+							for _, code := range(codes) {
+								p := parser(code)
+								status := p.runner(variables, functions, before_func_name, false)
+								if status == 1 {
+									return 1
+								} else if status == 2 {
+									return 2
+								} else if status == 3 {
+									return 3
+								}
+							}
+						} else if sharped && (value[i + 1] == "true" || value[i + 1] == "1") {
+							// sharped = false
+							all_false = false
+
+							codes := splitOutsideSemicolons(value[i + 2])
+
+							for _, code := range(codes) {
+								p := parser(code)
+								status := p.runner(variables, functions, before_func_name, false)
+								if status == 1 {
+									return 1
+								} else if status == 2 {
+									return 2
+								} else if status == 3 {
+									return 3
+								}
+							}
+						}
+					}
+				} else if value[i] == "default" {
+					if all_false {
+						codes := splitOutsideSemicolons(value[i + 1])
+
+						for _, code := range(codes) {
+							p := parser(code)
+							status := p.runner(variables, functions, before_func_name, false)
+							if status == 1 {
+								return 1
+							} else if status == 2 {
+								return 2
+							} else if status == 3 {
+								return 3
+							}
+						}
+					}
+				}
+			}
 		}
 
 		if name == "return" {
