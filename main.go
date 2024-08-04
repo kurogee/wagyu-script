@@ -869,7 +869,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 			array := strings.Split((*variables)[value[0]], " ")
 
 			for _, val := range(array) {
-				(*variables)[value[1]] = val
+				(*variables)[value[1]] = take_off_quotation(val)
 
 				codes := splitOutsideSemicolons(value[2])
 
