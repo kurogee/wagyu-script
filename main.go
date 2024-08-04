@@ -270,6 +270,8 @@ func variables_replacer(variables *map[string]string, target string, add_quotes 
 					}
 				}
 			}
+
+			return val
 		} else {
 			return val
 		}
