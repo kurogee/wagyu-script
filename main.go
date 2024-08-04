@@ -137,7 +137,7 @@ func split(input string) []string {
 					buffer.Reset()
 				}
 
-			case '\'', '"':
+			case '\'', '"', '`':
 				inQuote = true
 				quoteChar = char
 				buffer.WriteRune(char)
@@ -1267,6 +1267,9 @@ func splitOutsideSemicolons(input string) []string {
 	// セミコロンを元に戻す
 	for i, val := range(result) {
 		result[i] = strings.ReplaceAll(val, "__SEMICOLON__", ";")
+		// 空白でなく改行で引数が区切られている場合は、空白に変換する
+		re := regexp.MustCompile(`\n`)
+		result[i] = re.ReplaceAllString(result[i], " ")
 	}
 
 	return result
