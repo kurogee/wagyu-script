@@ -9,10 +9,10 @@ import (
 	"os"
 
 	date_pack "github.com/kurogee/wagyu-script/date"
-	get_pack "github.com/kurogee/wagyu-script/get"
 	file_pack "github.com/kurogee/wagyu-script/file"
 	array_pack "github.com/kurogee/wagyu-script/array"
 	string_pack "github.com/kurogee/wagyu-script/string"
+	get_pack "github.com/kurogee/wagyu-script/get"
 	regex_pack "github.com/kurogee/wagyu-script/regex"
 
 	math_sharp_functions "github.com/kurogee/wagyu-script/maths"
@@ -258,10 +258,21 @@ func parser(code string) (p Parse) {
 	return
 }
 
-func variables_replacer(variables *map[string]string, target string) string {
+func variables_replacer(variables *map[string]string, target string, add_quotes bool) string {
 	val, ok := (*variables)[target]
 	if ok {
-		return val
+		// もし数値や配列ではなかったらクオートで囲む
+		if add_quotes {
+			if _, err := strconv.Atoi(val); err != nil {
+				if _, err := strconv.ParseFloat(val, 64); err != nil {
+					if len(strings.Split(val, " ")) == 1 {
+						return "\"" + val + "\""
+					}
+				}
+			}
+		} else {
+			return val
+		}
 	}
 
 	return target
@@ -274,6 +285,9 @@ func take_off_quotation(target string) string {
 		return re.ReplaceAllString(target, "")
 	} else if strings.HasPrefix(target, "\"") && strings.HasSuffix(target, "\"") {
 		re := regexp.MustCompile(`^"|"$`)
+		return re.ReplaceAllString(target, "")
+	} else if strings.HasPrefix(target, "`") && strings.HasSuffix(target, "`") {
+		re := regexp.MustCompile(`^`+"`"+`|`+"`"+`$`)
 		return re.ReplaceAllString(target, "")
 	}
 
@@ -323,25 +337,15 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 	reformat_args := strings.Join(args, " ")
 	args = split(reformat_args)
 
-	// // もしargsのどこかに波括弧がり、かつその中身が計算式だったら、その計算式を計算してから格納する
-	// for i, arg := range(args) {
-	// 	if strings.HasPrefix(arg, "{") && strings.HasSuffix(arg, "}") {
-	// 		// 波括弧を取り除く
-	// 		arg = strings.Trim(arg, "{}")
-	// 
-	// 		// 一度空白で区切り、変数名があったら、その変数名の値を取得
-	// 		divided_arg := split(arg)
-	// 		for i, arg := range(divided_arg) {
-	// 			divided_arg[i] = variables_replacer(variables, arg)
-	// 		}
-	// 
-	// 		arg = strings.Join(divided_arg, " ")
-	// 
-	// 		if strings.Contains(arg, "+") || strings.Contains(arg, "-") || strings.Contains(arg, "*") || strings.Contains(arg, "/") {
-	// 			args[i] = calc_expression(variables_replacer(variables, arg))
-	// 		}
-	// 	}
-	// }
+	// argsの中にさらにシャープ関数がある場合は、それを実行
+	for i, arg := range(args) {
+		if strings.HasPrefix(arg, "#") {
+			func_name := strings.Split(arg, "(")[0][1:]
+			re := regexp.MustCompile(`^#[^\(]*\(|\)$`)
+			args := split(re.ReplaceAllString(arg, ""))
+			args[i] = sharp_functions(func_name, args, variables)
+		}
+	}
 	
 	if func_name != "" {
 		for i, arg := range(args) {
@@ -365,7 +369,7 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 	if func_name == "arrayAt" {
 		// args[0] は配列名、args[1] はインデックス
 		// インデックスは数値である必要がある
-		index, err := strconv.Atoi(variables_replacer(variables, args[1]))
+		index, err := strconv.Atoi(variables_replacer(variables, args[1], false))
 		if err != nil {
 			fmt.Println("The error occurred in arrayAt. [1] / インデックスが数値でないためエラーが発生しました。")
 			fmt.Println(err)
@@ -409,7 +413,7 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 		// args[1:] は変数名
 
 		if len(args) == 1 {
-			return calc_expression(variables_replacer(variables, args[0]), map[string]interface{}{})
+			return calc_expression(variables_replacer(variables, args[0], true), map[string]interface{}{})
 		} else if len(args) > 1 {
 			return calc_expression(variables_replacers((*variables), args[0], args[1:]), map[string]interface{}{})
 		}
@@ -418,8 +422,8 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 		// args[0] は開始番号、args[1] は終了番号
 
 		// もし引数が変数名である場合は、その変数名の値を取得
-		start_arg := variables_replacer(variables, args[0])
-		end_arg := variables_replacer(variables, args[1])
+		start_arg := variables_replacer(variables, args[0], false)
+		end_arg := variables_replacer(variables, args[1], false)
 
 		// fmt.Println(start_arg, end_arg)
 
@@ -451,12 +455,10 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 		// printfと同じように変数を埋め込む
 		return variables_replacers((*variables), args[0], args[1:])
 	} else if func_name == "var" {
-		val, ok := (*variables)[args[0]]
-		if ok {
-			return val
-		}
-
-		return ""
+		// 変数を宣言し、args[0]にargs[1]を代入
+		// 変数名を返す
+		(*variables)[args[0]] = variables_replacer(variables, args[1], false)
+		return args[0]
 	} else if func_name == "remove" {
 		// args[0] は配列名、args[1] は削除する値のインデックス
 		_, ok := (*variables)[args[0]]
@@ -469,7 +471,7 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 		array := strings.Split((*variables)[args[0]], " ")
 
 		// インデックスが数値であるか確認
-		index, err := strconv.Atoi(variables_replacer(variables, args[1]))
+		index, err := strconv.Atoi(variables_replacer(variables, args[1], false))
 		if err != nil {
 			fmt.Println("The error occurred in remove. [2] / インデックスが(変数の中の値が)数値でないためエラーが発生しました。")
 			fmt.Println(err)
@@ -488,13 +490,13 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 		return strings.Join(array, " ")
 	} else if func_name == "rand" {
 		// args[0] は開始値、args[1] は終了値
-		start, err := strconv.Atoi(variables_replacer(variables, args[0]))
+		start, err := strconv.Atoi(variables_replacer(variables, args[0], false))
 		if err != nil {
 			fmt.Println("The error occurred in rand. [1] / 開始値が(変数の中の値が)数値でないためエラーが発生しました。")
 			fmt.Println(err)
 		}
 
-		end, err := strconv.Atoi(variables_replacer(variables, args[1]))
+		end, err := strconv.Atoi(variables_replacer(variables, args[1], false))
 		if err != nil {
 			fmt.Println("The error occurred in rand. [2] / 終了値が(変数の中の値が)数値でないためエラーが発生しました。")
 			fmt.Println(err)
@@ -506,7 +508,7 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 		switch args[1] {
 		case "int":
 			// 小数点があったら、それを取り除く
-			val, err := strconv.Atoi(strings.Split(variables_replacer(variables, args[0]), ".")[0])
+			val, err := strconv.Atoi(strings.Split(variables_replacer(variables, args[0], false), ".")[0])
 			if err != nil {
 				fmt.Println("The error occurred in convert. [1] / 変換する値が(変数の中の値が)数値でないためエラーが発生しました。")
 				fmt.Println(err)
@@ -514,7 +516,7 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 
 			return strconv.Itoa(val)
 		case "float":
-			val, err := strconv.ParseFloat(variables_replacer(variables, args[0]), 64)
+			val, err := strconv.ParseFloat(variables_replacer(variables, args[0], false), 64)
 			if err != nil {
 				fmt.Println("The error occurred in convert. [2] / 変換する値が(変数の中の値が)数値でないためエラーが発生しました。")
 				fmt.Println(err)
@@ -524,7 +526,7 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 		}
 	} else if func_name == "" {
 		for i, arg := range(args) {
-			args[i] = variables_replacer(variables, arg)
+			args[i] = variables_replacer(variables, arg, true)
 		}
 
 		var formula string = strings.Join(args, " ")
@@ -613,7 +615,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		}
 
 		if name == "print" {
-			fmt.Print(take_off_quotation(giveSymbols(variables_replacer(variables, value[0]))))
+			fmt.Print(take_off_quotation(giveSymbols(variables_replacer(variables, value[0], false))))
 		}
 
 		if name == "printf" {
@@ -621,7 +623,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		}
 
 		if name == "println" {
-			fmt.Println(take_off_quotation(giveSymbols(variables_replacer(variables, value[0]))))
+			fmt.Println(take_off_quotation(giveSymbols(variables_replacer(variables, value[0], false))))
 		}
 
 		if name == "if" {
@@ -747,7 +749,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 				value[0] = sharp
 			}
 
-			eval := calc_expression(variables_replacer(variables, value[0]), map[string]interface{}{})
+			eval := calc_expression(variables_replacer(variables, value[0], true), map[string]interface{}{})
 			
 			var control string = ""
 			for eval == "true" || eval == "1" {
@@ -762,6 +764,8 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 					} else if status == 3 {
 						control = "continue"
 						break
+					} else if status == 1 {
+						return 1
 					}
 				}
 
@@ -785,66 +789,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 					value[0] = sharp
 				}
 
-				eval = calc_expression(variables_replacer(variables, value[0]), map[string]interface{}{})
-			}
-		}
-
-		if name == "calc" {
-			(*variables)[value[0]] = calc_expression(variables_replacers((*variables), value[1], value[2:]), map[string]interface{}{})
-		}
-
-		if name == "input" {
-			var input string
-			fmt.Scanln(&input)
-			(*variables)[value[0]] = input
-		}
-
-		if name == "make" {
-			if value[0] == "random" {
-				// value[1]変数名、value[2]は型(int | float | array)、value[3]は開始値、value[4]は終了値
-				var start int
-				var end int
-				var result string
-
-				_, ok := (*variables)[value[1]]
-				if !ok {
-					fmt.Println("The error occurred in random in make. [1] / 変数名が見つからないためエラーが発生しました。")
-					fmt.Println("The variable name is not found.")
-					return -1
-				}
-
-				if len(value) == 3 {
-					// それ以外はvalue[2]をarrayとみなして、その配列からランダムに1つ選ぶ
-					array := strings.Split(variables_replacer(variables, value[2]), " ")
-					// arrayからランダムに1つ選ぶ
-					result = array[rand.IntN(len(array))]
-				} else {
-					if value[2] == "int" {
-						start, _ = strconv.Atoi(variables_replacer(variables, value[3]))
-						end, _ = strconv.Atoi(variables_replacer(variables, value[4]))
-						result = strconv.Itoa(rand.IntN(end - start) + start)
-					} else if value[2] == "float" {
-						start, _ = strconv.Atoi(variables_replacer(variables, value[3]))
-						end, _ = strconv.Atoi(variables_replacer(variables, value[4]))
-						result = strconv.FormatFloat(rand.Float64() * float64(end - start) + float64(start), 'f', 10, 64)
-					} else if value[2] == "array" {
-						array := strings.Split(variables_replacer(variables, value[3]), " ")
-						// arrayからランダムに1つ選ぶ
-						result = array[rand.IntN(len(array))]
-					}
-				}
-
-				(*variables)[value[1]] = result
-			} else if value[0] == "var" {
-				if len(value) >= 3 {
-					// 値が複数ある場合は、それらをすべて変数名とみなし初期化する
-					for _, val := range(value[1:]) {
-						(*variables)[val] = ""
-					}
-				} else {
-					// value[1]の変数名で空の変数を作成
-					(*variables)[value[1]] = ""
-				}	
+				eval = calc_expression(variables_replacer(variables, value[0], true), map[string]interface{}{})
 			}
 		}
 
@@ -966,14 +911,14 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 				args := split(strings.Trim(strings.Split(value[0], "(")[1], ")"))
 				sharp = sharp_functions(func_name, args, variables)
 			} else {
-				value[0] = variables_replacer(variables, take_off_quotation(value[0]))
+				value[0] = variables_replacer(variables, take_off_quotation(value[0]), true)
 			}
 
 			if sharp != "" {
 				value[0] = sharp
 			}
 
-			eval := calc_expression(variables_replacer(variables, value[0]), map[string]interface{}{})
+			eval := calc_expression(variables_replacer(variables, value[0], true), map[string]interface{}{})
 
 			var all_false bool = true
 			for i := 1; i < len(value); i += 1 {
@@ -1000,6 +945,16 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 						if sharp != "" {
 							value[i + 1] = sharp
 							sharped = true
+						}
+					}
+
+					// もしvalue[i + 1]が文字列だったら、ダブルクォーテーションで囲まれているかどうかを確認する (囲まれていない場合は囲む)
+					if !strings.HasPrefix(value[i + 1], "\"") && !strings.HasSuffix(value[i + 1], "\"") {
+						_, err := strconv.Atoi(value[i + 1])
+						if err != nil {
+							if len(strings.Split(value[i + 1], " ")) == 1 {
+								value[i + 1] = "\"" + value[i + 1] + "\""
+							}
 						}
 					}
 
@@ -1079,6 +1034,66 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 			}
 		}
 
+		if name == "calc" {
+			(*variables)[value[0]] = calc_expression(variables_replacers((*variables), value[1], value[2:]), map[string]interface{}{})
+		}
+
+		if name == "input" {
+			var input string
+			fmt.Scanln(&input)
+			(*variables)[value[0]] = input
+		}
+
+		if name == "make" {
+			if value[0] == "random" {
+				// value[1]変数名、value[2]は型(int | float | array)、value[3]は開始値、value[4]は終了値
+				var start int
+				var end int
+				var result string
+
+				_, ok := (*variables)[value[1]]
+				if !ok {
+					fmt.Println("The error occurred in random in make. [1] / 変数名が見つからないためエラーが発生しました。")
+					fmt.Println("The variable name is not found.")
+					return -1
+				}
+
+				if len(value) == 3 {
+					// それ以外はvalue[2]をarrayとみなして、その配列からランダムに1つ選ぶ
+					array := strings.Split(variables_replacer(variables, value[2], false), " ")
+					// arrayからランダムに1つ選ぶ
+					result = array[rand.IntN(len(array))]
+				} else {
+					if value[2] == "int" {
+						start, _ = strconv.Atoi(variables_replacer(variables, value[3], false))
+						end, _ = strconv.Atoi(variables_replacer(variables, value[4], false))
+						result = strconv.Itoa(rand.IntN(end - start) + start)
+					} else if value[2] == "float" {
+						start, _ = strconv.Atoi(variables_replacer(variables, value[3], false))
+						end, _ = strconv.Atoi(variables_replacer(variables, value[4], false))
+						result = strconv.FormatFloat(rand.Float64() * float64(end - start) + float64(start), 'f', 10, 64)
+					} else if value[2] == "array" {
+						array := strings.Split(variables_replacer(variables, value[3], false), " ")
+						// arrayからランダムに1つ選ぶ
+						result = array[rand.IntN(len(array))]
+					}
+				}
+
+				(*variables)[value[1]] = result
+			} else if value[0] == "var" {
+				if len(value) >= 3 {
+					// 値が複数ある場合は、それらをすべて変数名とみなし初期化する
+					for _, val := range(value[1:]) {
+						(*variables)[val] = ""
+					}
+				} else {
+					// value[1]の変数名で空の変数を作成
+					(*variables)[value[1]] = ""
+				}
+				
+			}
+		}
+
 		if name == "return" {
 			(*variables)["0__return__"] = value[0]
 			return 1
@@ -1086,7 +1101,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 
 		if name == "runmyself" {
 			// value[0]を再度パースして実行
-			for _, code := range(splitOutsideSemicolons(variables_replacer(variables, value[0]))) {
+			for _, code := range(splitOutsideSemicolons(variables_replacer(variables, value[0], false))) {
 				p := parser(code)
 				status := p.runner(variables, functions, before_func_name, false)
 				if status == 1 {
@@ -1147,6 +1162,11 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 					}
 					(*variables)[arg] = splited_value[i]
 				}
+			// もし引数名があるが値が設定されていなかったらその引数を空白にするという処理を追加する
+			} else if len(args) != 0 && len(splited_value) == 0 {
+				for _, arg := range(args) {
+					(*variables)[arg] = ""
+				}
 			}
 
 			// 関数の中身を実行
@@ -1168,7 +1188,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 			// そもそもvalue[1]が存在するか確認
 			if len(value) > 2 {
 				if value[1] == "to" {
-					(*variables)[value[2]] = variables_replacer(variables, (*variables)["0__return__"])
+					(*variables)[value[2]] = variables_replacer(variables, (*variables)["0__return__"], false)
 				}
 			}
 
@@ -1188,11 +1208,11 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		}
 
 		if value[0] == "value" {
-			(*variables)[name] = variables_replacer(variables, value[1])
+			(*variables)[name] = variables_replacer(variables, value[1], false)
 		} else if value[0] == "array" {
 			array_value := split(value[1])
 			for i := 1; i < len(array_value); i++ {
-				array_value[i] = variables_replacer(variables, array_value[i])
+				array_value[i] = variables_replacer(variables, array_value[i], false)
 			}
 			array_value_edited := strings.Join(array_value, " ")
 
@@ -1214,10 +1234,10 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 				}
 			}
 
-			value1, err3 = strconv.Atoi(variables_replacer(variables, value[1]))
+			value1, err3 = strconv.Atoi(variables_replacer(variables, value[1], false))
 			if err3 != nil {
 				// 少数として格納されている場合
-				value1_float, err4 = strconv.ParseFloat(variables_replacer(variables, value[1]), 64)
+				value1_float, err4 = strconv.ParseFloat(variables_replacer(variables, value[1], false), 64)
 				if err4 != nil {
 					fmt.Println("The error occurred in variables. [2] / 変数が数値でないためエラーが発生しました。")
 					fmt.Println(err4)
