@@ -53,6 +53,13 @@ var packages_sharp_functions = Package_sharp_functions{
 	"regex": regex_pack.Sharp,
 }
 
+var replace_chars map[string]string = map[string]string{
+	"\\;" : "__SEMICOLON__",
+	"\\\"" : "__DOUBLE_QUOTATION__",
+	"\\'" : "__SINGLE_QUOTATION__",
+	"\\`" : "__BACK_QUOTATION__",
+};
+
 func contains(s []string, e string) bool {
 	for _, a := range(s) {
 		if a == e {
@@ -80,9 +87,10 @@ func split(input string) []string {
 
 	input = re.ReplaceAllString(input, "$1 $2")
 
-	// \\;という文字列を__SEMICOLON__に置き換える
-	re = regexp.MustCompile(`\\;`)
-	input = re.ReplaceAllString(input, "__SEMICOLON__")
+	// \\～を一時的にreplace_charsに置き換える
+	for key, value := range(replace_chars) {
+		input = strings.ReplaceAll(input, key, value)
+	}
 
 	inQuote := false
 	inParen := false
@@ -160,6 +168,13 @@ func split(input string) []string {
 		tokens = append(tokens, buffer.String())
 	}
 
+	// replace_charsを元に戻す
+	for i, token := range(tokens) {
+		for key, value := range(replace_chars) {
+			tokens[i] = strings.ReplaceAll(token, value, key)
+		}
+	}
+
 	if haveSpace {
 		// #関数名 と そのすぐ後にある()を結合する
 		for i, token := range(tokens) {
@@ -213,6 +228,7 @@ func giveSymbols(input string) string {
 	
 	return input
 }
+
 
 func parser(code string) (p Parse) {
 	// codeから不要な改行や文の始めのインデントを削除
@@ -276,6 +292,18 @@ func variables_replacer(variables *map[string]string, target string, add_quotes 
 			return val
 		}
 	}
+
+	// if add_quotes {
+	// 	if _, err := strconv.Atoi(target); err != nil {
+	// 		if _, err := strconv.ParseFloat(target, 64); err != nil {
+	// 			if len(strings.Split(target, " ")) == 1 {
+	// 				return "\"" + target + "\""
+	// 			}
+	// 		}
+	// 	}
+	// 
+	// 	return target
+	// }
 
 	return target
 }
@@ -447,7 +475,7 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 			return ""
 		}
 
-		var result string = " "
+		var result string = ""
 		for i := start; i <= end; i++ {
 			result += strconv.Itoa(i) + " "
 		}
@@ -696,7 +724,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 						p := parser(code)
 						status := p.runner(variables, functions, sharps, before_func_name, false)
 						if status == 1 {
-							break
+							return 1
 						} else if status == 2 {
 							return 2
 						} else if status == 3 {
@@ -712,7 +740,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 						p := parser(code)
 						status := p.runner(variables, functions, sharps, before_func_name, false)
 						if status == 1 {
-							break
+							return 1
 						} else if status == 2 {
 							return 2
 						} else if status == 3 {
@@ -728,7 +756,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 					p := parser(code)
 					status := p.runner(variables, functions, sharps, before_func_name, false)
 					if status == 1 {
-						break
+						return 1
 					} else if status == 2 {
 						return 2
 					} else if status == 3 {
@@ -746,7 +774,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 								p := parser(code)
 								status := p.runner(variables, functions, sharps, before_func_name, false)
 								if status == 1 {
-									break
+									return 1
 								} else if status == 2 {
 									return 2
 								} else if status == 3 {
@@ -764,7 +792,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 							p := parser(code)
 							status := p.runner(variables, functions, sharps, before_func_name, false)
 							if status == 1 {
-								break
+								return 1
 							} else if status == 2 {
 								return 2
 							} else if status == 3 {
@@ -973,7 +1001,19 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 				value[0] = sharp
 			}
 
-			eval := calc_expression(variables_replacer(variables, value[0], true), map[string]interface{}{})
+			// 計算できそうだったら計算する
+			var eval string = ""
+			mem, err := govaluate.NewEvaluableExpression(variables_replacer(variables, value[0], true))
+			if err != nil {
+				eval = variables_replacer(variables, value[0], true)
+			} else {
+				_, err2 := mem.Evaluate(map[string]interface{}{})
+				if err2 == nil {
+					eval = calc_expression(variables_replacer(variables, value[0], true), map[string]interface{}{})
+				} else {
+					eval = variables_replacer(variables, value[0], true)
+				}
+			}
 
 			var all_false bool = true
 			for i := 1; i < len(value); i += 1 {
@@ -1190,6 +1230,26 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 			delete((*variables), value[0])
 		}
 
+		if name == "swap" {
+			// value[0] は変数名1、value[1] は変数名2
+			// 変数の値を入れ替える
+			_, ok := (*variables)[value[0]]
+			if !ok {
+				fmt.Println("The error occurred in swap. [1] / 変数1が見つからないためエラーが発生しました。")
+				fmt.Println("The variable (1) is not found.")
+				return -1
+			}
+
+			_, ok = (*variables)[value[1]]
+			if !ok {
+				fmt.Println("The error occurred in swap. [2] / 変数2が見つからないためエラーが発生しました。")
+				fmt.Println("The variable (2) is not found.")
+				return -1
+			}
+
+			(*variables)[value[0]], (*variables)[value[1]] = (*variables)[value[1]], (*variables)[value[0]]
+		}
+
 		// もしオリジナル関数名がnameに存在する場合は、その関数を実行
 		// value[0]は引数の値のリスト、value[1]は「to」など、value[2]は返り値を格納する変数名
 		// toがあったら、その変数に返り値を格納する
@@ -1261,8 +1321,20 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 			fmt.Println("The variable name is invalid.")
 			return -1
 		}
+		
+		if len(value) == 1 {
+			if len(strings.Split(value[0], " ")) > 1 {
+				array_value := strings.Split(value[0], " ")
+				for i := 1; i < len(array_value); i++ {
+					array_value[i] = variables_replacer(variables, array_value[i], false)
+				}
+				array_value_edited := strings.Join(array_value, " ")
 
-		if value[0] == "value" {
+				(*variables)[name] = array_value_edited
+			} else {
+				(*variables)[name] = variables_replacer(variables, value[0], false)
+			}
+		} else if value[0] == "value" {
 			(*variables)[name] = variables_replacer(variables, value[1], false)
 		} else if value[0] == "array" {
 			array_value := split(value[1])
@@ -1291,7 +1363,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 
 			value1, err3 = strconv.Atoi(variables_replacer(variables, value[1], false))
 			if err3 != nil {
-				// 少数として格納されている場合
+				// 小数として格納されている場合
 				value1_float, err4 = strconv.ParseFloat(variables_replacer(variables, value[1], false), 64)
 				if err4 != nil {
 					fmt.Println("The error occurred in variables. [2] / 変数が数値でないためエラーが発生しました。")
@@ -1321,9 +1393,6 @@ func splitOutsideSemicolons(input string) []string {
 	// 一番外側にあるセミコロンで分割する
 	// ただし、波括弧内にあるセミコロンは無視し、波括弧内をひとかたまりとして扱う
 
-	// \\;という文字列を__SEMICOLON__に置き換える
-	input = strings.ReplaceAll(input, "\\;", "__SEMICOLON__")
-
 	var result []string
 	var count int = 0
 	var mem string = ""
@@ -1339,9 +1408,7 @@ func splitOutsideSemicolons(input string) []string {
 		}
 	}
 
-	// セミコロンを元に戻す
-	for i, val := range(result) {
-		result[i] = strings.ReplaceAll(val, "__SEMICOLON__", ";")
+	for i := 0; i < len(result); i++ {
 		// 空白でなく改行で引数が区切られている場合は、空白に変換する
 		re := regexp.MustCompile(`\n`)
 		result[i] = re.ReplaceAllString(result[i], " ")

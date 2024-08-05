@@ -1,4 +1,5 @@
-Wagyu-Script
+![Wagyu-script's logo](./WagyuScript_logo.png)
+Wagyu-script
 ---
 Wagyu-scriptは、@kurogeが開発した半角スペース区切りが特徴のシンプルなプログラミング言語です。
 

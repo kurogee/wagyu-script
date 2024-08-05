@@ -34,6 +34,17 @@ func add_quotation(val string) string {
 	return val
 }
 
+/*
+func take_off_quotation(target string) string {
+	if strings.HasPrefix(target, "'") && strings.HasSuffix(target, "'") {
+		return strings.Trim(target, "'")
+	} else if strings.HasPrefix(target, "\"") && strings.HasSuffix(target, "\"") {
+		return strings.Trim(target, "\"")
+	}
+
+	return target
+}*/
+
 func Run(name string, value []string, variables *map[string]string) {
 	// 基本的にvalue[0]は変数名
 	if name == "reset" {
@@ -52,6 +63,14 @@ func Run(name string, value []string, variables *map[string]string) {
 		}
 
 		(*variables)[value[0]] = strings.Join(strings.Split(variables_replacer(*variables, value[1]), value[2]), " ")
+	} else if name == "join" {
+		_, ok := (*variables)[value[0]]
+		if !ok {
+			fmt.Println("The error occurred in join function in array package. [1]")
+			fmt.Println("The variable is not found.")
+		}
+
+		(*variables)[value[0]] = strings.Join(strings.Split(variables_replacer(*variables, value[1]), " "), value[2])
 	} else if name == "addbeg" {
 		_, ok := (*variables)[value[0]]
 		if !ok {
@@ -62,7 +81,12 @@ func Run(name string, value []string, variables *map[string]string) {
 		val := variables_replacer(*variables, value[1])
 		val = add_quotation(val)
 
-		(*variables)[value[0]] = val + " " + (*variables)[value[0]]
+		// もしvalue[0]の変数が空文字列なら、スペースを追加しない
+		if (*variables)[value[0]] == "" {
+			(*variables)[value[0]] = val
+		} else {
+			(*variables)[value[0]] = val + " " + (*variables)[value[0]]
+		}
 	} else if name == "addend" {
 		_, ok := (*variables)[value[0]]
 		if !ok {
@@ -73,7 +97,12 @@ func Run(name string, value []string, variables *map[string]string) {
 		val := variables_replacer(*variables, value[1])
 		val = add_quotation(val)
 
-		(*variables)[value[0]] = (*variables)[value[0]] + " " + val
+		// もしvalue[0]の変数が空文字列なら、スペースを追加しない
+		if (*variables)[value[0]] == "" {
+			(*variables)[value[0]] = val
+		} else {
+			(*variables)[value[0]] = (*variables)[value[0]] + " " + val
+		}
 	} else if name == "addnth" {
 		_, ok := (*variables)[value[0]]
 		if !ok {
