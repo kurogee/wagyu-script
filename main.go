@@ -50,6 +50,7 @@ var packages_with_functions = Package_with_functions{
 
 var packages_sharp_functions = Package_sharp_functions{
 	"math": math_sharp_functions.Sharp,
+	"date": date_pack.Sharp,
 	"regex": regex_pack.Sharp,
 }
 
@@ -75,16 +76,10 @@ func split(input string) []string {
 	var buffer strings.Builder
 	var quoteChar rune
 	var parenStack []rune
-
-	var haveSpace bool = false
-
+	
 	// 違う種類の括弧が重なっているところがあったら、それを離す
 	// 例: ({ → ( { にする など
 	re := regexp.MustCompile(`([\(\{\[\)\}\]])\s+([\(\{\[\)\}\]])`)
-	if re.MatchString(input) {
-		haveSpace = true
-	}
-
 	input = re.ReplaceAllString(input, "$1 $2")
 
 	// \\～を一時的にreplace_charsに置き換える
@@ -169,26 +164,10 @@ func split(input string) []string {
 	}
 
 	// replace_charsを元に戻す
-	for i, token := range(tokens) {
+	for i := 0; i < len(tokens); i++ {
 		for key, value := range(replace_chars) {
-			tokens[i] = strings.ReplaceAll(token, value, key)
+			tokens[i] = strings.ReplaceAll(tokens[i], value, key)
 		}
-	}
-
-	if haveSpace {
-		// #関数名 と そのすぐ後にある()を結合する
-		for i, token := range(tokens) {
-			if strings.HasPrefix(token, "#") {
-				if i+1 < len(tokens) {
-					if strings.HasPrefix(tokens[i+1], "(") {
-						tokens[i] = token + tokens[i+1]
-						tokens = append(tokens[:i+1], tokens[i+2:]...)
-					}
-				}
-			}
-		}
-
-		return tokens
 	}
 
 	return tokens
@@ -693,15 +672,15 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		}
 
 		if name == "print" {
-			fmt.Print(take_off_quotation(giveSymbols(variables_replacer(variables, value[0], false))))
+			fmt.Print(giveSymbols(variables_replacer(variables, value[0], false)))
 		}
 
 		if name == "printf" {
-			fmt.Print(take_off_quotation(giveSymbols(variables_replacers((*variables), value[0], value[1:]))))
+			fmt.Print(giveSymbols(variables_replacers((*variables), value[0], value[1:])))
 		}
 
 		if name == "println" {
-			fmt.Println(take_off_quotation(giveSymbols(variables_replacer(variables, value[0], false))))
+			fmt.Println(giveSymbols(variables_replacer(variables, value[0], false)))
 		}
 
 		if name == "if" {
@@ -1137,6 +1116,15 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 			var input string
 			fmt.Scanln(&input)
 			(*variables)[value[0]] = input
+		}
+
+		if name == "vars" {
+			// value[0] は変数名の配列、value[1] は変数の値の配列
+			names := strings.Split(value[0], " ")
+			values := strings.Split(value[1], " ")
+			for i, name := range(names) {
+				(*variables)[name] = variables_replacer(variables, values[i], false)
+			}
 		}
 
 		if name == "make" {

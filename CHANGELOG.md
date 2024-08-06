@@ -1,3 +1,18 @@
+v1.2.0-beta (2024-08-06)
+---
+ - README.mdを更新しました
+ - Wagyu-scriptのパッケージの反映忘れが発覚したため、v1.1.0-betaより前のバージョンが非推奨となりました
+ - docs/sharp-function.mdを修正しました
+ - docs/common-function.mdを修正しました
+ - docs/get-started.mdを修正しました
+ - README.mdを更新しました
+ - dateパッケージにシャープ関数を追加しました
+ - dateパッケージに曜日を取得する関数を追加しました
+ - 変数を複数宣言する、vars関数を追加しました
+ - **docsに英語版を追加しました / Added English version to docs**
+ - ↑に伴い、docs/jaとdocs/enを作成しました
+ - ↑の更新がありましたが、今後のCHANGELOGでも``docs/_____.mdを修正しました``という表記を使います
+
 v1.1.0-beta (2024-08-05)
 ---
  - バージョン表記の仕組みを変更しました（beta.1→betaというようにbeta以降の数字を廃止など）

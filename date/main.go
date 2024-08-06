@@ -56,6 +56,42 @@ func _set_format(format string) string {
 	return format
 }
 
+func Sharp(func_name string, args []string, variables *map[string]string) string {
+	if func_name == "nowYear" {
+		return strconv.Itoa(time.Now().Year())
+	} else if func_name == "nowMonth" {
+		return strconv.Itoa(int(time.Now().Month()))
+	} else if func_name == "nowDay" {
+		return strconv.Itoa(time.Now().Day())
+	} else if func_name == "nowHour" {
+		return strconv.Itoa(time.Now().Hour())
+	} else if func_name == "nowMinute" {
+		return strconv.Itoa(time.Now().Minute())
+	} else if func_name == "nowSecond" {
+		return strconv.Itoa(time.Now().Second())
+	} else if func_name == "nowDow" || func_name == "nowDayOfWeek" {
+		return strconv.Itoa(int(time.Now().Weekday()))
+	} else if func_name == "nowFull" {
+		now := time.Now()
+		// YYYY-MM-DD HH:MM:SSにフォーマットして返す
+		return now.Format("2006-01-02 15:04:05")
+	} else if func_name == "nowDate" {
+		now := time.Now()
+		// YYYY-MM-DDにフォーマットして返す
+		return now.Format("2006-01-02")
+	} else if func_name == "nowTime" {
+		now := time.Now()
+		// HH:MM:SSにフォーマットして返す
+		return now.Format("15:04:05")
+	} else if func_name == "nowUnix" {
+		now := time.Now()
+		// Unix時間にフォーマットして返す
+		return strconv.FormatInt(now.Unix(), 10)
+	}
+
+	return ""
+}
+
 func Run(name string, value []string, variables *map[string]string) {
 	if name == "now" {
 		if value[0] == "format" {
@@ -127,6 +163,15 @@ func Run(name string, value []string, variables *map[string]string) {
 			}
 
 			(*variables)[value[1]] = strconv.Itoa(time.Now().Second())
+		} else if value[0] == "dow" || value[0] == "dayOfWeek" {
+			// value[1]に変数が存在するか確認
+			_, ok := (*variables)[value[1]]
+			if !ok {
+				fmt.Println("The error occurred in dow (dayOfWeek) function in date package. [8]")
+				return
+			}
+
+			(*variables)[value[1]] = strconv.Itoa(int(time.Now().Weekday()))
 		} else {
 			fmt.Println("The error occurred in now in date package. [8]")
 			fmt.Println("The function name is invalid.")
