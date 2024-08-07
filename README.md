@@ -9,7 +9,9 @@ Wagyu-scriptは、@kurogeが開発した半角スペース区切りが特徴の�
 
 How to start (en)
 ---
-Please see the [Get Started](./docs/en/get-started.md) page for more information (Used Google Translate and ChatGPT to translate).
+Please see the [Get Started](./docs/en/get-started.md) page for more information (Used Google Translate).
+
+**Notice**: The Japanese page may explain how to use it based on the latest version. If you feel that the information in the English version is out of date, please translate the Japanese version of the page.
 
 お知らせ
 ---
@@ -27,20 +29,25 @@ println "Hello, World!";
 
 ### FizzBuzz
 ```
-start = value 1;
-end = value 100;
-
-while #(start <= end) {
-    if #(start % 15 == 0) {
+each #from(1 100) > i {
+    if #(i % 15 == 0) {
         println "FizzBuzz";
-    } elif #(start % 5 == 0) {
+    } elif #(i % 5 == 0) {
         println "Buzz";
-    } elif #(start % 3 == 0) {
+    } elif #(i % 3 == 0) {
         println "Fizz";
     } else {
-        println start;
+        println i;
     };
-
-    start = add 1;
 };
 ```
+
+Credits
+---
+This project uses codes from the following projects:
+ - [github.com/Knetic/govaluate](https://github.com/Knetic/govaluate) (MIT License)
+    Some functions are used in this codes. Thanks for the great library! / このコードには以上のライブラリの関数が使用されています。これらのライブラリの製作者に感謝します！
+
+License
+---
+This project is licensed under the MIT License. Please see the [LICENSE](./LICENSE) file for more information. / このプロジェクトはMITライセンスのもとで公開されています。詳しくは[LICENSE](./LICENSE)ファイルをご覧ください。
