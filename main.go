@@ -725,7 +725,7 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 
 		// 返り値を返す
 		// 文字列か文字列じゃないかのboolも返す
-		return (*variables)["return"], false
+		return (*variables)["0__return__"], false
 	}
 
 	return "", false
