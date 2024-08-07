@@ -77,3 +77,5 @@ The date format for the date package is as follows: YYYY-MM-DD HH:mm:SS
 | Function Form | Execution Content |
 | --- | --- |
 | replace variable_name1 value_or_variable_name regex replacement_string; | Replaces parts of the string `value_or_variable_name` that match `regex` with `replacement_string` and assigns it to `variable_name1`. |
+| find variable_name1 value_or_variable_name regex; | Searches for the string that matches `regex` in `value_or_variable_name` and assigns it to `variable_name1`. |
+| findAll variable_name1 value_or_variable_name regex; | Searches for all strings that match `regex` in `value_or_variable_name` and assigns them to `variable_name1` as an array. |

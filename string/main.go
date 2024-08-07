@@ -48,39 +48,11 @@ func variables_replacer(variables *map[string]string, target string, target_in_q
 	return target
 }
 
-/*
-func take_off_quotation(target string) string {
-	if strings.HasPrefix(target, "'") && strings.HasSuffix(target, "'") {
-		return strings.Trim(target, "'")
-	} else if strings.HasPrefix(target, "\"") && strings.HasSuffix(target, "\"") {
-		return strings.Trim(target, "\"")
-	}
-
-	return target
-}
-
-func variables_replacers(variables map[string]string, sentence string, targets []string) string {
-	var result string = sentence
-	var count int = 1
-	for _, target := range(targets) {
-		val, ok := variables[target]
-		if ok {
-			result = strings.ReplaceAll(result, ":" + strconv.Itoa(count) + ":", val)
-			count++
-		} else {
-			result = strings.ReplaceAll(result, ":" + strconv.Itoa(count) + ":", target)
-			count++
-		}
-	}
-
-	return result
-}*/
-
 func Run(name string, value []string, value_in_quotes []bool, variables *map[string]string) {
 	if name == "replace" {
-		// value[0] = 変数名 value[1] = 対象の文字 value[1] = 置換前の文字列 value[2] = 置換後の文字列 value[3] = 置き換え回数
-		if len(value) == 4 {
-			replace_count, err := strconv.Atoi(variables_replacer(variables, value[3], value_in_quotes[3], false))
+		// value[0] = 変数名 value[1] = 対象の文字 value[2] = 置換前の文字列 value[3] = 置換後の文字列 value[4] = 置き換え回数
+		if len(value) == 5 {
+			replace_count, err := strconv.Atoi(variables_replacer(variables, value[4], value_in_quotes[4], false))
 			if err != nil {
 				fmt.Println("The error occurred in replace function in string package. [1]")
 				fmt.Println(err)
@@ -89,9 +61,10 @@ func Run(name string, value []string, value_in_quotes []bool, variables *map[str
 			_, ok := (*variables)[value[0]]
 			if !ok {
 				fmt.Println("The error occurred in replace function in string package. [2]")
+				fmt.Println("The variable is not found.")
 			}
 
-			for i, v := range(value[1:]) {
+			for i, v := range(value[1:3]) {
 				value[i + 1] = variables_replacer(variables, v, value_in_quotes[i + 1], false)
 			}
 
@@ -167,4 +140,31 @@ func Run(name string, value []string, value_in_quotes []bool, variables *map[str
 
 		(*variables)[value[0]] = str[start : start+length]
 	}
+}
+
+func Sharp(func_name string, args []string, args_in_quote []bool, variables *map[string]string) (string, bool) {
+	if func_name == "replace" {
+		if len(args) == 4 {
+			// args[0] = 対象の文字 args[1] = 置換前の文字列 args[2] = 置換後の文字列 (args[3] = 置き換え回数)
+			replace_count, err := strconv.Atoi(variables_replacer(variables, args[3], args_in_quote[3], false))
+			if err != nil {
+				fmt.Println("The error occurred in replace sharp function in string package. [1]")
+				fmt.Println(err)
+			}
+
+			for i, v := range(args) {
+				args[i] = variables_replacer(variables, v, args_in_quote[i], false)
+			}
+
+			return strings.Replace(args[0], args[1], args[2], replace_count), true
+		} else {
+			for i, v := range(args) {
+				args[i] = variables_replacer(variables, v, args_in_quote[i], false)
+			}
+
+			return strings.Replace(args[0], args[1], args[2], -1), true
+		}
+	}
+	
+	return "", false
 }

@@ -54,6 +54,8 @@ var packages_sharp_functions = Package_sharp_functions{
 	"math": math_sharp_functions.Sharp,
 	"date": date_pack.Sharp,
 	"regex": regex_pack.Sharp,
+	"string": string_pack.Sharp,
+	"array": array_pack.Sharp,
 }
 
 var replace_chars map[string]string = map[string]string{
@@ -193,7 +195,7 @@ func split(input string) []map[string]bool {
 	// tokensをmapに変換し、inQuotesと合わせる
 	var tokens_map []map[string]bool
 	for i, token := range(tokens) {
-		tokens_map = append(tokens_map, map[string]bool{token: inQuotes[i]})
+		tokens_map = append(tokens_map, map[string]bool{take_off_quotation(token): inQuotes[i]})
 	}
 
 	return tokens_map
@@ -458,7 +460,7 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 		}
 
 		// 配列名が存在する場合は、その配列を取得
-		array := strings.Split(variables_replacer(variables, args_str[0], args_in_quote2[0], true), " ")
+		array, _ := divide_split(split(variables_replacer(variables, args_str[0], args_in_quote2[0], false)))
 
 		// インデックスが配列の範囲内にあるか確認
 		if index < 0 || index >= len(array) {
@@ -467,7 +469,7 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 			return "", false
 		}
 
-		return array[index], true
+		return array[index], args_in_quote2[0]
 	} else if func_name == "at" {
 		// args[0] は文字列or変数名、args[1] はインデックス
 		// インデックスは数値である必要がある
@@ -495,7 +497,7 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 		}
 
 		// 配列名が存在する場合は、その配列を取得
-		array := strings.Split((*variables)[args[0]], " ")
+		array, _ := divide_split(split((*variables)[args[0]]))
 
 		return strconv.Itoa(len(array)), args_in_quote2[0]
 	} else if func_name == "len" {
@@ -535,10 +537,14 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 			return "", false
 		}
 
-		var result string = ""
+		var result string
+		var builder strings.Builder
+
 		for i := start; i <= end; i++ {
-			result += strconv.Itoa(i) + " "
+			builder.WriteString(strconv.Itoa(i) + " ")
 		}
+
+		result = builder.String()
 
 		// 最後のスペースを削除
 		result = result[:len(result) - 1]
@@ -562,7 +568,7 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 		}
 
 		// 配列名が存在する場合は、その配列を取得
-		array := strings.Split((*variables)[args[0]], " ")
+		array, _ := divide_split(split((*variables)[args[0]]))
 
 		// インデックスが数値であるか確認
 		index, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
@@ -596,7 +602,8 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 			fmt.Println(err)
 		}
 
-		return strconv.Itoa(rand.IntN(end - start) + start), false
+		// start〜endの範囲（endを含む）の乱数を返す
+		return strconv.Itoa(rand.IntN(end - start + 1) + start), false
 	} else if func_name == "convert" {
 		// args[0] は変換する値、args[1] は変換後の型
 		switch args[1] {
@@ -1032,7 +1039,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 				}
 
 				// 配列名が存在する場合は、その配列を取得
-				array := strings.Split(val, " ")
+				array, _ := divide_split(split(val))
 
 				for _, val := range(array) {
 					(*variables)[value[2]] = take_off_quotation(val)
@@ -1087,7 +1094,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 				}
 
 				// 配列名が存在する場合は、その配列を取得
-				array := strings.Split(val, " ")
+				array, _ := divide_split(split(val))
 
 				for i := 0; i < len(array); i++ {
 					(*variables)[value[2]] = strconv.Itoa(i)
@@ -1198,8 +1205,8 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 									return 3
 								}
 							}
-						} else if len(strings.Split(value[i + 1], " ")) > 1 {
-							array := strings.Split(value[i + 1], " ")
+						} else if l, _ := divide_split(split(value[i + 1])); len(l) > 1 {
+							array, _ := divide_split(split(value[i + 1]))
 							if contains(array, value[0]) {
 								all_false = false
 
@@ -1312,7 +1319,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 
 				if len(value) == 3 {
 					// それ以外はvalue[2]をarrayとみなして、その配列からランダムに1つ選ぶ
-					array := strings.Split(variables_replacer(variables, value[2], value_in_quotes[2], false), " ")
+					array, _ := divide_split(split(variables_replacer(variables, value[2], value_in_quotes[2], false)))
 					// arrayからランダムに1つ選ぶ
 					result = array[rand.IntN(len(array))]
 				} else {
@@ -1325,7 +1332,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 						end, _ = strconv.Atoi(variables_replacer(variables, value[4], value_in_quotes[4], false))
 						result = strconv.FormatFloat(rand.Float64() * float64(end - start) + float64(start), 'f', 10, 64)
 					} else if value[2] == "array" {
-						array := strings.Split(variables_replacer(variables, value[3], value_in_quotes[3], false), " ")
+						array, _ := divide_split(split(variables_replacer(variables, value[3], value_in_quotes[3], false)))
 						// arrayからランダムに1つ選ぶ
 						result = array[rand.IntN(len(array))]
 					}
@@ -1424,7 +1431,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		// value[0]は引数の値のリスト、value[1]は「to」など、value[2]は返り値を格納する変数名
 		// toがあったら、その変数に返り値を格納する
 		if _, ok := (*functions)[name]; ok {
-			args := strings.Split((*functions)[name][0], " ")
+			args, _ := divide_split(split((*functions)[name][0]))
 			splited_value, _ := divide_split(split(value[0]))
 			
 			if len(args) != 0 && len(splited_value) != 0 && len(args) == len(splited_value) {
@@ -1498,14 +1505,15 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		if len(value) == 1 {
 			if len(strings.Split(value[0], " ")) > 1 {
 				array_value, array_value_in_quotes := divide_split(split(value[0]))
-				for i := 1; i < len(array_value); i++ {
+
+				for i := 0; i < len(array_value); i++ {
 					// もし#があったら、その関数を実行してから格納する
 					if strings.HasPrefix(array_value[i], "#") {
 						func_name := strings.Split(array_value[i], "(")[0][1:]
 						args := split(strings.Trim(strings.Split(array_value[i], "(")[1], ")"))
 						args_str, args_in_quote := divide_split(args)
 
-						array_value[i], _ = sharp_functions(func_name, args_str, args_in_quote, variables, functions, sharps)
+						array_value[i], array_value_in_quotes[i] = sharp_functions(func_name, args_str, args_in_quote, variables, functions, sharps)
 					}
 
 					array_value[i] = variables_replacer(variables, array_value[i], array_value_in_quotes[i], true)
@@ -1521,9 +1529,20 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 			(*variables)[name] = variables_replacer(variables, value[1], value_in_quotes[1], false)
 		} else if value[0] == "array" {
 			array_value, array_value_in_quotes := divide_split(split(value[1]))
-			for i := 1; i < len(array_value); i++ {
-				array_value[i] = variables_replacer(variables, array_value[i], array_value_in_quotes[i], false)
+
+			for i := 0; i < len(array_value); i++ {
+				// もし#があったら、その関数を実行してから格納する
+				if strings.HasPrefix(array_value[i], "#") {
+					func_name := strings.Split(array_value[i], "(")[0][1:]
+					args := split(strings.Trim(strings.Split(array_value[i], "(")[1], ")"))
+					args_str, args_in_quote := divide_split(args)
+
+					array_value[i], array_value_in_quotes[i] = sharp_functions(func_name, args_str, args_in_quote, variables, functions, sharps)
+				}
+
+				array_value[i] = variables_replacer(variables, array_value[i], array_value_in_quotes[i], true)
 			}
+
 			array_value_edited := strings.Join(array_value, " ")
 
 			(*variables)[name] = array_value_edited

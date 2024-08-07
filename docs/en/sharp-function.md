@@ -98,6 +98,30 @@ arr = array (2 3 1 5 4);
 | ceil(value) | Returns the value rounded up to the nearest integer | ``#math.ceil(3.14)`` → ``4.00`` |
 | round(value number of decimal places) | Returns the value rounded to the specified number of decimal places | ``#math.round(3.14 1)`` → ``3.10`` |
 
+### string package
+The string package allows you to manipulate strings. The function format is #string.function name, which is omitted in the ``Function Name`` column of the table.
+
+The variables in this explanation example have the following values:
+```
+str = value "Hello, World!";
+```
+
+| Function name | Execution content | Example |
+|---|---|---|
+| replace(string before after number of replacements) | Replaces the string before with the string after in the target string. The ``number of replacements`` can be omitted. If omitted, all replacements will be made. | ``#replace(str "Hello" "Hi")`` → ``"Hi, World!"`` | 
+
+### array package
+The array package allows you to manipulate arrays. The function format is #array.function name, which is omitted in the ``Function Name`` column of the table.
+
+The variables in this explanation example have the following values:
+```
+arr = array ("apple" "banana" "orange" "grape");
+```
+
+| Function name | Execution content | Example |
+|---|---|---|
+| search(array value) | Returns the index of the value in the array. Returns ``-1`` if it does not exist | ``#search(arr "banana")`` → ``2`` |
+
 ### regex package
 The regex package allows you to manipulate strings using regular expressions. The function format is #regex.function name, which is omitted in the ``Function Name`` column of the table.
 

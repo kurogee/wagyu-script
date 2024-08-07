@@ -66,7 +66,6 @@ func take_off_quotation(target string) string {
 func Run(name string, value []string, value_in_quotes []bool, variables *map[string]string) {
 	if name == "replace" {
 		// value[0] = 結果を入れる変数名 value[1] = 対象の文字列 value[2] = 置換前のパターン value[3] = 置換後の文字列
-		// 置き換え回数が無い場合はすべて置換
 		if len(value) == 4 {
 			_, ok := (*variables)[value[0]]
 			if !ok {
@@ -74,10 +73,10 @@ func Run(name string, value []string, value_in_quotes []bool, variables *map[str
 			}
 
 			target := variables_replacer(variables, value[1], value_in_quotes[1], false)
-			before := regexp.MustCompile(variables_replacer(variables, value[2], value_in_quotes[2], false))
-			after := variables_replacer(variables, value[3], value_in_quotes[3], false)
+			pattern := variables_replacer(variables, value[2], value_in_quotes[2], false)
+			replacement := variables_replacer(variables, value[3], value_in_quotes[3], false)
 
-			result := before.ReplaceAllString(target, after)
+			result := regexp.MustCompile(pattern).ReplaceAllString(target, replacement)
 			(*variables)[value[0]] = result
 		} else {
 			fmt.Println("The error occurred in replace function in regex package. [2]")
