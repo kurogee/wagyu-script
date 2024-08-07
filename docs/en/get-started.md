@@ -50,12 +50,13 @@ Types
 ---
 This language has functions to specify types, but they are rarely used because they are mostly automatically interpreted. Below is a list of types.
 
-| Name | Type name | Contents to be put into the type |
-|---|---|---|
-| String type | string | String (ex: ``"Hello!"``) |
-| Array type | array | Array (ex: ``("Hello" "World" "Wagyu")``) |
-| Integer type | int | Integer value (ex: ``10``) |
-| Decimal type | float | Decimal value (ex: ``3.14``)|
+| Name                               | Type name | Contents to be put into the type          |
+| ---------------------------------- | --------- | ----------------------------------------- |
+| String type                        | string    | String (ex: ``"Hello!"``)                 |
+| Array type                         | array     | Array (ex: ``("Hello" "World" "Wagyu")``) |
+| Regular expression type (reserved) | regex     | Regular expression (ex: `` `[a-z]` ``)    |
+| Integer type                       | int       | Integer value (ex: ``10``)                |
+| Decimal type                       | float     | Decimal value (ex: ``3.14``)              |
 
 Other output
 ---
@@ -67,10 +68,10 @@ In addition to ``println``, the following output functions are available.
     ```
     In the format, for example, if you enter ``:1:``, the first variable name added to the argument will be inserted there. Below is an example program using this.
     
-    ※ In this example, the variable ``x`` contains the string type value ``Tanaka``.
+    ※ In this example, the variable ``x`` contains the string type value ``Mike``.
     ```
     printf "Hello, :1:!" x;
-    // -> "Hello, Tanaka!" is output.
+    // -> "Hello, Mike!" is output.
     ```
 - ``print`` Outputs a string without a newline at the end of the sentence.
     ```
@@ -203,6 +204,8 @@ default {
     ...
 };
 ```
+``Value`` can also include variables. Also, write the execution content in ``{}`` after the ``case``.
+
 ``case`` writes the value that matches the condition. If the value matches the ``variable name`` value, the contents of that ``case`` will be executed. Also, if there are multiple cases that match the condition, they will all be executed, so use ``break`` appropriately.
 
 If you use a sharp function, it will be executed if the result is ``true`` or ``1``. In that case, you can substitute ``_`` for the ``variable name`` in the sharp function argument.
@@ -261,7 +264,7 @@ The ``each`` function is provided as an **array repetition** function. ``each`` 
 
 ``each`` is written as follows.
 ```
-each array name > variable name {
+each array name (or array) > variable name {
     Execution content;
     ...
 };

@@ -8,16 +8,6 @@ import (
 	"time"
 )
 
-func variables_replacer(variables map[string]string, target string) string {
-	val, ok := variables[target]
-	if ok {
-		return val
-	}
-
-	return target
-}
-
-/*
 func take_off_quotation(target string) string {
 	if strings.HasPrefix(target, "'") && strings.HasSuffix(target, "'") {
 		return strings.Trim(target, "'")
@@ -27,6 +17,40 @@ func take_off_quotation(target string) string {
 
 	return target
 }
+
+func variables_replacer(variables *map[string]string, target string, target_in_quote, add_quotes bool) string {
+	if target_in_quote {
+		if add_quotes {
+			return target
+		}
+
+		// 両端のクオートを取り除く
+		target = take_off_quotation(target)
+		return target
+	}
+
+	val, ok := (*variables)[target]
+	if ok {
+		// もし数値や配列ではなかったらクオートで囲む
+		if add_quotes {
+			if _, err := strconv.Atoi(val); err != nil {
+				if _, err := strconv.ParseFloat(val, 64); err != nil {
+					if len(strings.Split(val, " ")) == 1 {
+						return "\"" + val + "\""
+					}
+				}
+			}
+
+			return val
+		} else {
+			return val
+		}
+	}
+
+	return target
+}
+
+/*
 
 func variables_replacers(variables map[string]string, sentence string, targets []string) string {
 	var result string = sentence
@@ -56,43 +80,43 @@ func _set_format(format string) string {
 	return format
 }
 
-func Sharp(func_name string, args []string, variables *map[string]string) string {
+func Sharp(func_name string, args []string, args_in_quote []bool, variables *map[string]string) (string, bool) {
 	if func_name == "nowYear" {
-		return strconv.Itoa(time.Now().Year())
+		return strconv.Itoa(time.Now().Year()), false
 	} else if func_name == "nowMonth" {
-		return strconv.Itoa(int(time.Now().Month()))
+		return strconv.Itoa(int(time.Now().Month())), false
 	} else if func_name == "nowDay" {
-		return strconv.Itoa(time.Now().Day())
+		return strconv.Itoa(time.Now().Day()), false
 	} else if func_name == "nowHour" {
-		return strconv.Itoa(time.Now().Hour())
+		return strconv.Itoa(time.Now().Hour()), false
 	} else if func_name == "nowMinute" {
-		return strconv.Itoa(time.Now().Minute())
+		return strconv.Itoa(time.Now().Minute()), false
 	} else if func_name == "nowSecond" {
-		return strconv.Itoa(time.Now().Second())
+		return strconv.Itoa(time.Now().Second()), false
 	} else if func_name == "nowDow" || func_name == "nowDayOfWeek" {
-		return strconv.Itoa(int(time.Now().Weekday()))
+		return strconv.Itoa(int(time.Now().Weekday())), false
 	} else if func_name == "nowFull" {
 		now := time.Now()
 		// YYYY-MM-DD HH:MM:SSにフォーマットして返す
-		return now.Format("2006-01-02 15:04:05")
+		return now.Format("2006-01-02 15:04:05"), true
 	} else if func_name == "nowDate" {
 		now := time.Now()
 		// YYYY-MM-DDにフォーマットして返す
-		return now.Format("2006-01-02")
+		return now.Format("2006-01-02"), true
 	} else if func_name == "nowTime" {
 		now := time.Now()
 		// HH:MM:SSにフォーマットして返す
-		return now.Format("15:04:05")
+		return now.Format("15:04:05"), true
 	} else if func_name == "nowUnix" {
 		now := time.Now()
 		// Unix時間にフォーマットして返す
-		return strconv.FormatInt(now.Unix(), 10)
+		return strconv.FormatInt(now.Unix(), 10), false
 	}
 
-	return ""
+	return "", false
 }
 
-func Run(name string, value []string, variables *map[string]string) {
+func Run(name string, value []string, value_in_quotes []bool, variables *map[string]string) {
 	if name == "now" {
 		if value[0] == "format" {
 			// value[1]に変数が存在するか確認
@@ -103,7 +127,7 @@ func Run(name string, value []string, variables *map[string]string) {
 			}
 
 			// value[2]には日付のフォーマットが入っている
-			format := variables_replacer(*variables, value[2])
+			format := variables_replacer(variables, value[2], value_in_quotes[2], false)
 			format = strings.ReplaceAll(format, ":auto:", "YYYY-MM-DD HH:mm:SS")
 			format = _set_format(format)
 
@@ -187,10 +211,10 @@ func Run(name string, value []string, variables *map[string]string) {
 			}
 
 			// value[2]には日付がフォーマットに則って入っている
-			base_time := variables_replacer(*variables, value[2])
+			base_time := variables_replacer(variables, value[2], value_in_quotes[2], false)
 
 			// value[3]には配列で(年, 月, 日)が入っている
-			value_array := strings.Split(variables_replacer(*variables, value[3]), " ")
+			value_array := strings.Split(variables_replacer(variables, value[3], value_in_quotes[3], false), " ")[1:]
 			for i, v := range(value_array) {
 				_, err := strconv.Atoi(v)
 				if v == "" || err != nil {
@@ -236,10 +260,10 @@ func Run(name string, value []string, variables *map[string]string) {
 			}
 
 			// value[2]には日付がフォーマットに則って入っている
-			base_time := variables_replacer(*variables, value[2])
+			base_time := variables_replacer(variables, value[2], value_in_quotes[2], false)
 
 			// value[3]には配列で(年, 月, 日)が入っている
-			value_array := strings.Split(variables_replacer(*variables, value[3]), " ")[1:]
+			value_array := strings.Split(variables_replacer(variables, value[3], value_in_quotes[3], false), " ")[1:]
 			for i, v := range(value_array) {
 				if v == "" {
 					value_array[i] = "0"
@@ -290,7 +314,7 @@ func Run(name string, value []string, variables *map[string]string) {
 			return
 		}
 		
-		value_array := strings.Split(variables_replacer(*variables, value[1]), " ")
+		value_array := strings.Split(variables_replacer(variables, value[1], value_in_quotes[1], false), " ")[1:]
 		// value_arrayを2桁に変換 1桁の場合は前に0を付ける
 		for i, v := range(value_array) {
 			if len(v) == 1 {

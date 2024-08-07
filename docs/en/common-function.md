@@ -7,7 +7,7 @@ This page introduces a list of standard functions. Note that functions introduce
 | input variable_name; | Assigns input to the variable_name. |
 | make random variable_name type[int, float, array] value1 (value2); | Assigns a random number from value1 to value2 to the variable_name. However, if the type is array, it randomly selects from value1, so value2 can be omitted. |
 | runmyself code; | Executes the code. |
-| delete variable_name; | Deletes the variable named variable_name. |
+| delete variable_name (variable_name2 ...); | Deletes the variable_name. Multiple variable names can be specified. (Optional) |
 | swap variable_name1 variable_name2; | Swaps the values of variable_name1 and variable_name2. |
 
 Package Functions List
@@ -60,7 +60,7 @@ The date format for the date package is as follows: YYYY-MM-DD HH:mm:SS
 | Function Form | Execution Content |
 | --- | --- |
 | read filename value_or_variable_name; | Reads the `filename` file and assigns it to `value_or_variable_name`. |
-| readline filename variable_name (line_number); | Reads the `line_number`th line of the `filename` file and assigns it to `variable_name` as an array. If `line_number` is omitted, reads all lines. |
+| readline filename variable_name (line_number); | Reads the file named ``filename`` up to line_number and assigns it to ``variable_name`` as an array. ``(line_number)`` is optional, and if omitted, all lines will be read. |
 | write filename value_or_variable_name; | Writes the value of `value_or_variable_name` to the `filename` file. |
 | addend filename value_or_variable_name; | Adds the value of `value_or_variable_name` to the end of the `filename` file. |
 | remove filename; | Deletes the `filename` file. |

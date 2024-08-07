@@ -7,14 +7,66 @@ import (
 	"os"
 )
 
-func variables_replacer(variables map[string]string, target string) string {
-	val, ok := variables[target]
-	if ok {
-		return val
+func take_off_quotation(target string) string {
+	if strings.HasPrefix(target, "'") && strings.HasSuffix(target, "'") {
+		return strings.Trim(target, "'")
+	} else if strings.HasPrefix(target, "\"") && strings.HasSuffix(target, "\"") {
+		return strings.Trim(target, "\"")
 	}
 
 	return target
 }
+
+func variables_replacer(variables *map[string]string, target string, target_in_quote, add_quotes bool) string {
+	if target_in_quote {
+		if add_quotes {
+			return target
+		}
+
+		// 両端のクオートを取り除く
+		target = take_off_quotation(target)
+		return target
+	}
+
+	val, ok := (*variables)[target]
+	if ok {
+		// もし数値や配列ではなかったらクオートで囲む
+		if add_quotes {
+			if _, err := strconv.Atoi(val); err != nil {
+				if _, err := strconv.ParseFloat(val, 64); err != nil {
+					if len(strings.Split(val, " ")) == 1 {
+						return "\"" + val + "\""
+					}
+				}
+			}
+
+			return val
+		} else {
+			return val
+		}
+	}
+
+	return target
+}
+
+/*
+
+func variables_replacers(variables map[string]string, sentence string, targets []string) string {
+	var result string = sentence
+	var count int = 1
+	for _, target := range(targets) {
+		val, ok := variables[target]
+		if ok {
+			result = strings.ReplaceAll(result, ":" + strconv.Itoa(count) + ":", val)
+			count++
+		} else {
+			result = strings.ReplaceAll(result, ":" + strconv.Itoa(count) + ":", target)
+			count++
+		}
+	}
+
+	return result
+}*/
 
 func replaceSymbols(input string) string {
 	input = strings.ReplaceAll(input, "\n", "\\n")
@@ -36,10 +88,10 @@ func giveSymbols(input string) string {
 	return input
 }
 
-func Run(name string, value []string, variables *map[string]string) {
+func Run(name string, value []string, value_in_quotes []bool, variables *map[string]string) {
 	if name == "read" {
 		// value[0] ... ファイルのパス value[1] ... 値を入れる変数名
-		data, err := os.ReadFile(variables_replacer(*variables, value[0]))
+		data, err := os.ReadFile(variables_replacer(variables, value[0], value_in_quotes[0], false))
 		if err != nil {
 			fmt.Println("The error occurred in read function in file package. [1]")
 			fmt.Println(err)
@@ -56,8 +108,8 @@ func Run(name string, value []string, variables *map[string]string) {
 		(*variables)[value[1]] = string(giveSymbols(string(data)))
 	} else if name == "write" {
 		// value[0] ... 書き込むファイルのパス value[1] ... 書き込む値（変数もあり）
-		write_data := []byte(giveSymbols(variables_replacer(*variables, value[1])))
-		err := os.WriteFile(variables_replacer(*variables, value[0]), write_data, os.ModePerm)
+		write_data := []byte(giveSymbols(variables_replacer(variables, value[1], value_in_quotes[1], false)))
+		err := os.WriteFile(variables_replacer(variables, value[0], value_in_quotes[0], false), write_data, os.ModePerm)
 		if err != nil {
 			fmt.Println("The error occurred in write function in file package. [1]")
 			fmt.Println(err)
@@ -65,8 +117,8 @@ func Run(name string, value []string, variables *map[string]string) {
 		}
 	} else if name == "addend" {
 		// value[0] ... 追記するファイルのパス value[1] ... 追記する値（変数もあり）
-		addend_data := giveSymbols(variables_replacer(*variables, value[1]))
-		file_data, err := os.ReadFile(variables_replacer(*variables, value[0]))
+		addend_data := giveSymbols(variables_replacer(variables, value[1], value_in_quotes[1], false))
+		file_data, err := os.ReadFile(variables_replacer(variables, value[0], value_in_quotes[0], false))
 		if err != nil {
 			fmt.Println("The error occurred in addend function in file package. [1]")
 			fmt.Println(err)
@@ -75,7 +127,7 @@ func Run(name string, value []string, variables *map[string]string) {
 
 		all_data := []byte(string(file_data) + addend_data)
 
-		err2 := os.WriteFile(variables_replacer(*variables, value[0]), all_data, os.ModePerm)
+		err2 := os.WriteFile(variables_replacer(variables, value[0], value_in_quotes[0], false), all_data, os.ModePerm)
 		if err2 != nil {
 			fmt.Println("The error occurred in addend function in file package. [2]")
 			fmt.Println(err)
@@ -83,7 +135,7 @@ func Run(name string, value []string, variables *map[string]string) {
 		}
 	} else if name == "remove" {
 		// value[0] ... 削除するファイルのパス
-		err := os.Remove(variables_replacer(*variables, value[0]))
+		err := os.Remove(variables_replacer(variables, value[0], value_in_quotes[0], false))
 		if err != nil {
 			fmt.Println("The error occurred in remove function in file package. [1]")
 			fmt.Println(err)
@@ -91,7 +143,7 @@ func Run(name string, value []string, variables *map[string]string) {
 		}
 	} else if name == "rename" {
 		// value[0] ... リネームするファイルのパス value[1] ... 新しいファイル名
-		err := os.Rename(variables_replacer(*variables, value[0]), variables_replacer(*variables, value[1]))
+		err := os.Rename(variables_replacer(variables, value[0], value_in_quotes[0], false), variables_replacer(variables, value[1], value_in_quotes[1], false))
 		if err != nil {
 			fmt.Println("The error occurred in rename function in file package. [1]")
 			fmt.Println(err)
@@ -99,7 +151,7 @@ func Run(name string, value []string, variables *map[string]string) {
 		}
 	} else if name == "readline" {
 		// value[0] ... ファイルのパス value[1] ... 値を入れる変数名 (value[2] ... 読み込む行数 デフォルトは全部)
-		data, err := os.ReadFile(variables_replacer(*variables, value[0]))
+		data, err := os.ReadFile(variables_replacer(variables, value[0], value_in_quotes[0], false))
 		if err != nil {
 			fmt.Println("The error occurred in readline function in file package. [1]")
 			fmt.Println(err)
@@ -118,7 +170,7 @@ func Run(name string, value []string, variables *map[string]string) {
 
 			(*variables)[value[1]] = strings.Join(lines[:], " ")
 		} else {
-			how_many, err := strconv.Atoi(variables_replacer(*variables, value[2]))
+			how_many, err := strconv.Atoi(variables_replacer(variables, value[2], value_in_quotes[2], false))
 			if err != nil {
 				fmt.Println("The error occurred in readline function in file package. [2]")
 				fmt.Println(err)

@@ -6,35 +6,6 @@ import (
 	"strconv"
 )
 
-func variables_replacer(variables map[string]string, target string) string {
-	val, ok := variables[target]
-	if ok {
-		return val
-	}
-
-	return target
-}
-
-func replaceSymbols(input string) string {
-	input = strings.ReplaceAll(input, "\n", "\\n")
-	input = strings.ReplaceAll(input, "\t", "\\t")
-	input = strings.ReplaceAll(input, "\\", "\\\\")
-	input = strings.ReplaceAll(input, "\"", "\\\"")
-	input = strings.ReplaceAll(input, "'", "\\'")
-
-	return input
-}
-
-func add_quotation(val string) string {
-	if strings.Contains(val, " ") {
-		val = replaceSymbols(val)
-		val = "\"" + val + "\""
-	}
-
-	return val
-}
-
-/*
 func take_off_quotation(target string) string {
 	if strings.HasPrefix(target, "'") && strings.HasSuffix(target, "'") {
 		return strings.Trim(target, "'")
@@ -43,9 +14,41 @@ func take_off_quotation(target string) string {
 	}
 
 	return target
-}*/
+}
 
-func Run(name string, value []string, variables *map[string]string) {
+func variables_replacer(variables *map[string]string, target string, target_in_quote, add_quotes bool) string {
+	if target_in_quote {
+		if add_quotes {
+			return "\"" + target + "\""
+		}
+
+		// 両端のクオートを取り除く
+		target = take_off_quotation(target)
+		return target
+	}
+
+	val, ok := (*variables)[target]
+	if ok {
+		// もし数値や配列ではなかったらクオートで囲む
+		if add_quotes {
+			if _, err := strconv.Atoi(val); err != nil {
+				if _, err := strconv.ParseFloat(val, 64); err != nil {
+					if len(strings.Split(val, " ")) == 1 {
+						return "\"" + val + "\""
+					}
+				}
+			}
+
+			return val
+		} else {
+			return val
+		}
+	}
+
+	return target
+}
+
+func Run(name string, value []string, value_in_quotes []bool, variables *map[string]string) {
 	// 基本的にvalue[0]は変数名
 	if name == "reset" {
 		_, ok := (*variables)[value[0]]
@@ -62,7 +65,7 @@ func Run(name string, value []string, variables *map[string]string) {
 			fmt.Println("The variable is not found.")
 		}
 
-		(*variables)[value[0]] = strings.Join(strings.Split(variables_replacer(*variables, value[1]), value[2]), " ")
+		(*variables)[value[0]] = strings.Join(strings.Split(variables_replacer(variables, value[1], value_in_quotes[1], false), value[2]), " ")
 	} else if name == "join" {
 		_, ok := (*variables)[value[0]]
 		if !ok {
@@ -70,7 +73,7 @@ func Run(name string, value []string, variables *map[string]string) {
 			fmt.Println("The variable is not found.")
 		}
 
-		(*variables)[value[0]] = strings.Join(strings.Split(variables_replacer(*variables, value[1]), " "), value[2])
+		(*variables)[value[0]] = strings.Join(strings.Split(variables_replacer(variables, value[1], value_in_quotes[1], false), " "), value[2])
 	} else if name == "addbeg" {
 		_, ok := (*variables)[value[0]]
 		if !ok {
@@ -78,8 +81,8 @@ func Run(name string, value []string, variables *map[string]string) {
 			fmt.Println("The variable is not found.")
 		}
 
-		val := variables_replacer(*variables, value[1])
-		val = add_quotation(val)
+		val := variables_replacer(variables, value[1], value_in_quotes[1], true)
+		// val = add_quotation(val)
 
 		// もしvalue[0]の変数が空文字列なら、スペースを追加しない
 		if (*variables)[value[0]] == "" {
@@ -94,8 +97,8 @@ func Run(name string, value []string, variables *map[string]string) {
 			fmt.Println("The variable is not found.")
 		}
 
-		val := variables_replacer(*variables, value[1])
-		val = add_quotation(val)
+		val := variables_replacer(variables, value[1], value_in_quotes[1], true)
+		// val = add_quotation(val)
 
 		// もしvalue[0]の変数が空文字列なら、スペースを追加しない
 		if (*variables)[value[0]] == "" {
@@ -110,14 +113,14 @@ func Run(name string, value []string, variables *map[string]string) {
 			fmt.Println("The variable is not found.")
 		}
 
-		index, err := strconv.Atoi(variables_replacer(*variables, value[1]))
+		index, err := strconv.Atoi(variables_replacer(variables, value[1], value_in_quotes[1], false))
 		if err != nil {
 			fmt.Println("The error occurred in add function in array package. [2]")
 			fmt.Println("The index is not integer.")
 		}
 
-		val := variables_replacer(*variables, value[2])
-		val = add_quotation(val)
+		val := variables_replacer(variables, value[2], value_in_quotes[2], true)
+		// val = add_quotation(val)
 
 		(*variables)[value[0]] = (*variables)[value[0]][:index + 1] + " " + val + (*variables)[value[0]][index + 1:]
 	} else if name == "replace" {
@@ -128,7 +131,7 @@ func Run(name string, value []string, variables *map[string]string) {
 			fmt.Println("The variable is not found.")
 		}
 
-		index, err := strconv.Atoi(variables_replacer(*variables, value[1]))
+		index, err := strconv.Atoi(variables_replacer(variables, value[1], value_in_quotes[1], false))
 		if err != nil {
 			fmt.Println("The error occurred in replace function in array package. [2]")
 			fmt.Println("The index is not integer.")
@@ -137,8 +140,8 @@ func Run(name string, value []string, variables *map[string]string) {
 		// 一回配列に変換してから置換する
 		slice := strings.Split((*variables)[value[0]], " ")
 
-		val := variables_replacer(*variables, value[2])
-		val = add_quotation(val)
+		val := variables_replacer(variables, value[2], value_in_quotes[2], true)
+		// val = add_quotation(val)
 
 		slice[index] = val
 		(*variables)[value[0]] = strings.Join(slice, " ")
@@ -149,7 +152,7 @@ func Run(name string, value []string, variables *map[string]string) {
 			fmt.Println("The variable is not found.")
 		}
 
-		index, err := strconv.Atoi(variables_replacer(*variables, value[1]))
+		index, err := strconv.Atoi(variables_replacer(variables, value[1], value_in_quotes[1], false))
 		if err != nil {
 			fmt.Println("The error occurred in delnth function in array package. [2]")
 			fmt.Println("The index is not integer.")
@@ -210,7 +213,7 @@ func Run(name string, value []string, variables *map[string]string) {
 		// 配列から値を検索し、そのインデックスをvalue[0]の変数に格納 なければ-1
 		index := -1
 		for i, val := range slice {
-			if val == variables_replacer(*variables, value[2]) {
+			if val == variables_replacer(variables, value[2], value_in_quotes[2], false) {
 				index = i
 				break
 			}

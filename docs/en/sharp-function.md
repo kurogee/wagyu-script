@@ -30,6 +30,7 @@ num = value 10;
 |---|---|---|
 | arrayAt(array name index) | Returns the value at any index of the array | ``#arrayAt(arr 2)`` → ``"orange"``|
 | arrayLen(array name) | Returns the length of the array | ``#arrayLen(arr)`` → ``4`` |
+| at(string index) | Returns the character at any index of the string | ``#at("Hello, World!" 7)`` → ``"W"`` |
 | len(value or variable name) | Returns the length of the value | ``#len(val)`` → ``5`` |
 | from(integer value 1 integer value 2) | Creates an array containing consecutive numbers ranging from ``integer value 1`` to ``integer value 2`` | ``#from(1 10)`` → ``(1 2 3 ... 9 10)`` |
 | format(format variable 1 variable 2 ...) | Returns a string formatted like ``printf`` | ``#format("Hello, :1:." val)`` → ``"Hello, Wagyu."`` |
@@ -38,6 +39,8 @@ num = value 10;
 | convert(value or variable_name type_name) | Converts the type of a value | ``#convert(num float)`` → ``10.00`` |
 | var(variable_name value) | Declare and initialize a variable, and enter the variable name in the argument with the function | ``println #var(x 10);`` → ``10`` (``10`` is entered into the variable ``x``, and ``10`` is output.) |
 | repeat(string Repeat count) | Returns a string with a specified number of repetitions | ``#repeat("Hello, " 3)`` → ``"Hello, Hello, Hello, "`` |
+| all(array or any number of arguments) | Returns ``true`` if all arguments are ``true`` or ``1`` | ``#all(true false true)`` → ``false`` |
+| any(array or any number of arguments) | Returns ``true`` if there is at least one ``true`` or ``1`` in the arguments | ``#any(true false true)`` → ``true`` |
 
 Create your own function
 ---
@@ -106,6 +109,7 @@ str = value "Hello, World!";
 | Function name | Execution content | Example |
 |---|---|---|
 | match(regex value) | Returns whether the value matches the regular expression | ``#regex.match("Hello" str)`` → ``true`` |
+| find(regex value) | Returns the part of the value that matches the regular expression | ``#regex.find("Hello" str)`` → ``"Hello"`` |
 
 ### date package
 The date package performs operations related to dates. The function format is #date.function name, which is omitted in the ``Function Name`` column of the table.

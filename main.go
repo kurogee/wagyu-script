@@ -8,9 +8,9 @@ import (
 	"math/rand/v2"
 	"os"
 
+	array_pack "github.com/kurogee/wagyu-script/array"
 	date_pack "github.com/kurogee/wagyu-script/date"
 	file_pack "github.com/kurogee/wagyu-script/file"
-	array_pack "github.com/kurogee/wagyu-script/array"
 	string_pack "github.com/kurogee/wagyu-script/string"
 	get_pack "github.com/kurogee/wagyu-script/get"
 	regex_pack "github.com/kurogee/wagyu-script/regex"
@@ -22,6 +22,7 @@ import (
 
 type Parse struct {
 	parsed []string
+	parsed_in_quotes []bool
 	parsed_meaning CodeType
 }
 
@@ -29,11 +30,12 @@ type CodeType struct {
 	name string
 	conjunction string
 	value []string
+	value_in_quotes []bool
 }
 
-type Package map[string]func(string, []string, *map[string]string)
-type Package_with_functions map[string]func(string, []string, *map[string]string, *map[string][]string)
-type Package_sharp_functions map[string]func(string, []string, *map[string]string) string
+type Package map[string]func(string, []string, []bool, *map[string]string)
+type Package_with_functions map[string]func(string, []string, []bool, *map[string]string, *map[string][]string)
+type Package_sharp_functions map[string]func(string, []string, []bool, *map[string]string) (string, bool)
 
 // packageの一覧を定義
 var packages = Package{
@@ -71,7 +73,7 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-func split(input string) []string {
+func split(input string) []map[string]bool {
 	var tokens []string
 	var buffer strings.Builder
 	var quoteChar rune
@@ -88,6 +90,8 @@ func split(input string) []string {
 	}
 
 	inQuote := false
+	inQuotes := []bool{}
+
 	inParen := false
 	inFunctionCall := false
 
@@ -101,6 +105,9 @@ func split(input string) []string {
 			buffer.WriteRune(char)
 			if char == quoteChar {
 				inQuote = false
+
+				inQuotes = append(inQuotes, true)
+
 				tokens = append(tokens, buffer.String())
 				buffer.Reset()
 			}
@@ -115,6 +122,8 @@ func split(input string) []string {
 						tokens = append(tokens, buffer.String())
 						buffer.Reset()
 						inFunctionCall = false
+
+						inQuotes = append(inQuotes, false)
 					}
 				}
 			} else if parenRegex.MatchString(string(char)) {
@@ -128,8 +137,11 @@ func split(input string) []string {
 				inParen = true
 			} else if char == ')' && len(parenStack) == 0 {
 				inFunctionCall = false
+
 				tokens = append(tokens, buffer.String())
 				buffer.Reset()
+
+				inQuotes = append(inQuotes, false)
 			}
 
 		default:
@@ -138,6 +150,8 @@ func split(input string) []string {
 				if buffer.Len() > 0 {
 					tokens = append(tokens, buffer.String())
 					buffer.Reset()
+
+					inQuotes = append(inQuotes, false)
 				}
 
 			case '\'', '"', '`':
@@ -161,8 +175,14 @@ func split(input string) []string {
 
 	if buffer.Len() > 0 {
 		tokens = append(tokens, buffer.String())
-	}
 
+		if inQuote {
+			inQuotes = append(inQuotes, true)
+		} else {
+			inQuotes = append(inQuotes, false)
+		}
+	}
+	
 	// replace_charsを元に戻す
 	for i := 0; i < len(tokens); i++ {
 		for key, value := range(replace_chars) {
@@ -170,7 +190,29 @@ func split(input string) []string {
 		}
 	}
 
-	return tokens
+	// tokensをmapに変換し、inQuotesと合わせる
+	var tokens_map []map[string]bool
+	for i, token := range(tokens) {
+		tokens_map = append(tokens_map, map[string]bool{token: inQuotes[i]})
+	}
+
+	return tokens_map
+}
+
+// splitの返り値から、文字列とboolを別々にする関数
+func divide_split(tokens []map[string]bool) ([]string, []bool) {
+	var divided_tokens []string
+	var divided_tokens_bool []bool
+	for _, token := range(tokens) {
+		for key := range(token) {
+			divided_tokens = append(divided_tokens, key)
+		}
+		for _, val := range(token) {
+			divided_tokens_bool = append(divided_tokens_bool, val)
+		}
+	}
+
+	return divided_tokens, divided_tokens_bool
 }
 
 func matchingParen(char rune) rune {
@@ -215,7 +257,7 @@ func parser(code string) (p Parse) {
 	code = strings.ReplaceAll(code, "\r", "")
 	code = strings.ReplaceAll(code, "\t", "")
 
-    // 正規表現で文初めの2つもしくは4つのスペースを削除
+	// 正規表現で文初めの2つもしくは4つのスペースを削除
 	re := regexp.MustCompile(`^ {2}|^ {4}`)
 	code = re.ReplaceAllString(code, "")
 
@@ -223,37 +265,62 @@ func parser(code string) (p Parse) {
 	
 	if mem == "" {
 		p.parsed = []string{"None", ""}
-		p.parsed_meaning = CodeType{"None", "", []string{}}
+		p.parsed_meaning = CodeType{"None", "", []string{}, []bool{}}
 		return
 	}
 
 	// 先頭に//があったらコメントアウトを削除
 	if strings.HasPrefix(code, "//") {
 		p.parsed = []string{"None", ""}
-		p.parsed_meaning = CodeType{"None", "", []string{}}
+		p.parsed_meaning = CodeType{"None", "", []string{}, []bool{}}
 		return
 	}
 
 	divided_code := split(code)
 
-	p.parsed = divided_code
+	// divided_codeをstringとboolに分ける
+	var divided_code_str []string
+	var divided_code_bool []bool
+	for _, val := range(divided_code) {
+		for key := range(val) {
+			divided_code_str = append(divided_code_str, key)
+		}
+		for _, val2 := range(val) {
+			divided_code_bool = append(divided_code_bool, val2)
+		}
+	}
+
+	p.parsed = divided_code_str
+	p.parsed_in_quotes = divided_code_bool
 
 	// もしdivided_code[1]が記号ではなかったら、divided_code[1:]をvalueに格納しconjunctionには<を格納
 	re = regexp.MustCompile(`^[><=]$`)
-	if re.MatchString(divided_code[1]) {
-		p.parsed_meaning.name = strings.ReplaceAll(divided_code[0], " ", "")
-		p.parsed_meaning.conjunction = divided_code[1]
-		p.parsed_meaning.value = divided_code[2:]
+	if re.MatchString(divided_code_str[1]) {
+		p.parsed_meaning.name = strings.ReplaceAll(divided_code_str[0], " ", "")
+		p.parsed_meaning.conjunction = divided_code_str[1]
+		p.parsed_meaning.value = divided_code_str[2:]
+		p.parsed_meaning.value_in_quotes = divided_code_bool[2:]
 	} else {
-		p.parsed_meaning.name = strings.ReplaceAll(divided_code[0], " ", "")
+		p.parsed_meaning.name = strings.ReplaceAll(divided_code_str[0], " ", "")
 		p.parsed_meaning.conjunction = "<"
-		p.parsed_meaning.value = divided_code[1:]
+		p.parsed_meaning.value = divided_code_str[1:]
+		p.parsed_meaning.value_in_quotes = divided_code_bool[1:]
 	}
 
 	return
 }
 
-func variables_replacer(variables *map[string]string, target string, add_quotes bool) string {
+func variables_replacer(variables *map[string]string, target string, target_in_quote, add_quotes bool) string {
+	if target_in_quote {
+		if add_quotes {
+			return "\"" + target + "\""
+		}
+
+		// 両端のクオートを取り除く
+		target = take_off_quotation(target)
+		return target
+	}
+
 	val, ok := (*variables)[target]
 	if ok {
 		// もし数値や配列ではなかったらクオートで囲む
@@ -303,62 +370,67 @@ func take_off_quotation(target string) string {
 	return target
 }
 
-func variables_replacers(variables map[string]string, sentence string, targets []string) string {
+func variables_replacers(variables map[string]string, sentence string, targets []string, targets_in_quote []bool) string {
 	var result string = sentence
 	var count int = 1
-	for _, target := range(targets) {
-		val, ok := variables[target]
-		if ok {
-			result = strings.ReplaceAll(result, ":" + strconv.Itoa(count) + ":", val)
-			count++
+	for i, target := range(targets) {
+		if targets_in_quote[i] {
+			// 両端のクオートを取り除く
+			mem := take_off_quotation(target)
+			result = strings.ReplaceAll(result, ":" + strconv.Itoa(count) + ":", mem)
 		} else {
-			result = strings.ReplaceAll(result, ":" + strconv.Itoa(count) + ":", target)
-			count++
+			val, ok := variables[target]
+			if ok {
+				val = take_off_quotation(val)
+				result = strings.ReplaceAll(result, ":" + strconv.Itoa(count) + ":", val)
+			} else {
+				mem := take_off_quotation(target)
+				result = strings.ReplaceAll(result, ":" + strconv.Itoa(count) + ":", mem)
+			}
 		}
+
+		count++
 	}
 
 	return result
 }
 
 func calc_expression(expression string, parameters map[string]interface{}) string {
-    govaluate_result, err := govaluate.NewEvaluableExpression(expression)
-    if err != nil {
-        fmt.Println("The error occurred in calc. [1] / 演算の準備をしている際にエラーが発生しました。")
-        fmt.Println(err)
-        return ""
-    }
+	govaluate_result, err := govaluate.NewEvaluableExpression(expression)
+	if err != nil {
+		fmt.Println("The error occurred in calc. [1] / 演算の準備をしている際にエラーが発生しました。")
+		fmt.Println(err)
+		return ""
+	}
 
-    result, err2 := govaluate_result.Evaluate(parameters)
-    if err2 != nil {
-        fmt.Println("The error occurred in calc. [2] / 演算をする際にエラーが発生しました。")
-        fmt.Println(err2)
-        return ""
-    }
+	result, err2 := govaluate_result.Evaluate(parameters)
+	if err2 != nil {
+		fmt.Println("The error occurred in calc. [2] / 演算をする際にエラーが発生しました。")
+		fmt.Println(err2)
+		return ""
+	}
 
-    return fmt.Sprintf("%v", result)
+	return fmt.Sprintf("%v", result)
 }
 
-func sharp_functions(func_name string, args []string, variables *map[string]string, functions *map[string][]string, sharps *map[string][]string) string {
+func sharp_functions(func_name string, args []string, args_in_quote []bool, variables *map[string]string, functions *map[string][]string, sharps *map[string][]string) (string, bool) {
 	if variables == nil {
 		variables = &map[string]string{}
 	}
 
-	reformat_args := strings.Join(args, " ")
-	args = split(reformat_args)
+	args_str := args
+	args_in_quote2 := args_in_quote
 
 	// argsの中にさらにシャープ関数がある場合は、それを実行
 	for i, arg2 := range(args) {
 		if strings.HasPrefix(arg2, "#") {
 			func_name2 := strings.Split(arg2, "(")[0][1:]
 			re := regexp.MustCompile(`^#[^\(]*\(|\)$`)
+
 			args2 := split(re.ReplaceAllString(arg2, ""))
-			args[i] = sharp_functions(func_name2, args2, variables, functions, sharps)
-		}
-	}
-	
-	if func_name != "" {
-		for i, arg := range(args) {
-			args[i] = take_off_quotation(arg)
+			args2_str, args2_in_quote := divide_split(args2)
+			
+			args_str[i], args_in_quote2[i] = sharp_functions(func_name2, args2_str, args2_in_quote, variables, functions, sharps)
 		}
 	}
 
@@ -369,40 +441,49 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 		if !ok {
 			fmt.Println("The error occurred in sharp_functions. [1] / パッケージが見つからないためエラーが発生しました。")
 			fmt.Println("The package is not found.")
-			return ""
+			return "", false
 		}
 
-		return val(strings.Split(func_name, ".")[1], args, variables)
+		result, result_bool := val(strings.Split(func_name, ".")[1], args, args_in_quote, variables)
+		return result, result_bool
 	}
 
 	if func_name == "arrayAt" {
 		// args[0] は配列名、args[1] はインデックス
 		// インデックスは数値である必要がある
-		index, err := strconv.Atoi(variables_replacer(variables, args[1], false))
+		index, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
 		if err != nil {
 			fmt.Println("The error occurred in arrayAt. [1] / インデックスが数値でないためエラーが発生しました。")
 			fmt.Println(err)
 		}
 
-		// 配列名が存在するか確認
-		_, ok := (*variables)[args[0]]
-		if !ok {
-			fmt.Println("The error occurred in arrayAt. [2] / 配列名が見つからないためエラーが発生しました。")
-			fmt.Println("The array name is not found.")
-			return ""
-		}
-
 		// 配列名が存在する場合は、その配列を取得
-		array := split((*variables)[args[0]])
+		array := strings.Split(variables_replacer(variables, args_str[0], args_in_quote2[0], true), " ")
 
 		// インデックスが配列の範囲内にあるか確認
 		if index < 0 || index >= len(array) {
 			fmt.Println("The error occurred in arrayAt. [3] / インデックスが範囲外のためエラーが発生しました。")
 			fmt.Println("The index is out of range.")
-			return ""
+			return "", false
 		}
 
-		return array[index]
+		return array[index], true
+	} else if func_name == "at" {
+		// args[0] は文字列or変数名、args[1] はインデックス
+		// インデックスは数値である必要がある
+		index, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
+		if err != nil {
+			fmt.Println("The error occurred in at. [1] / インデックスが数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		// 文字列が変数名である場合は、その変数名の値を取得
+		mem := strings.Split(variables_replacer(variables, args_str[0], args_in_quote2[0], false), "")[index]
+
+		// 両端にクオートをつける
+		mem = "\"" + mem + "\""
+
+		return mem, true
 	} else if func_name == "arrayLen" {
 		// args[0] は配列名
 		// 配列名が存在するか確認
@@ -410,33 +491,33 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 		if !ok {
 			fmt.Println("The error occurred in arrayLen. [1] / 配列名が見つからないためエラーが発生しました。")
 			fmt.Println("The array name is not found.")
-			return ""
+			return "", false
 		}
 
 		// 配列名が存在する場合は、その配列を取得
 		array := strings.Split((*variables)[args[0]], " ")
 
-		return strconv.Itoa(len(array))
+		return strconv.Itoa(len(array)), args_in_quote2[0]
 	} else if func_name == "len" {
 		// args[0] は文字列
 		// 文字列の長さを返す
-		return strconv.Itoa(len(variables_replacer(variables, args[0], false)))
+		return strconv.Itoa(len(variables_replacer(variables, args[0], args_in_quote2[0], false))), args_in_quote2[0]
 	} else if func_name == "calc" {
 		// args[0] は計算式
 		// args[1:] は変数名
 
 		if len(args) == 1 {
-			return calc_expression(variables_replacer(variables, args[0], true), map[string]interface{}{})
+			return calc_expression(variables_replacer(variables, args[0], args_in_quote2[0], true), map[string]interface{}{}), false
 		} else if len(args) > 1 {
-			return calc_expression(variables_replacers((*variables), args[0], args[1:]), map[string]interface{}{})
+			return calc_expression(variables_replacers((*variables), args[0], args[1:], args_in_quote2[1:]), map[string]interface{}{}), false
 		}
 	} else if func_name == "from" {
 		// 引数の1番目の数字から2番目の数字までの連番の配列を作成
 		// args[0] は開始番号、args[1] は終了番号
 
 		// もし引数が変数名である場合は、その変数名の値を取得
-		start_arg := variables_replacer(variables, args[0], false)
-		end_arg := variables_replacer(variables, args[1], false)
+		start_arg := variables_replacer(variables, args_str[0], args_in_quote2[0], false)
+		end_arg := variables_replacer(variables, args_str[1], args_in_quote2[1], false)
 
 		// fmt.Println(start_arg, end_arg)
 
@@ -444,14 +525,14 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 		if err != nil {
 			fmt.Println("The error occurred in from. [1] / 開始番号が(変数の中の値が)数値でないためエラーが発生しました。")
 			fmt.Println(err)
-			return ""
+			return "", false
 		}
 
 		end, err := strconv.Atoi(end_arg)
 		if err != nil {
 			fmt.Println("The error occurred in from. [2] / 終了番号が(変数の中の値が)数値でないためエラーが発生しました。")
 			fmt.Println(err)
-			return ""
+			return "", false
 		}
 
 		var result string = ""
@@ -462,16 +543,16 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 		// 最後のスペースを削除
 		result = result[:len(result) - 1]
 
-		return result
+		return result, false
 	} else if func_name == "format" {
 		// args[0]は接続する文字列フォーマット、args[1:]は変数名
 		// printfと同じように変数を埋め込む
-		return variables_replacers((*variables), args[0], args[1:])
+		return variables_replacers((*variables), args[0], args[1:], args_in_quote2[1:]), true
 	} else if func_name == "var" {
 		// 変数を宣言し、args[0]にargs[1]を代入
 		// 変数名を返す
-		(*variables)[args[0]] = variables_replacer(variables, args[1], false)
-		return args[0]
+		(*variables)[args[0]] = variables_replacer(variables, args_str[1], args_in_quote2[1], false)
+		return args[0], args_in_quote2[0]
 	} else if func_name == "remove" {
 		// args[0] は配列名、args[1] は削除する値のインデックス
 		_, ok := (*variables)[args[0]]
@@ -484,7 +565,7 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 		array := strings.Split((*variables)[args[0]], " ")
 
 		// インデックスが数値であるか確認
-		index, err := strconv.Atoi(variables_replacer(variables, args[1], false))
+		index, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
 		if err != nil {
 			fmt.Println("The error occurred in remove. [2] / インデックスが(変数の中の値が)数値でないためエラーが発生しました。")
 			fmt.Println(err)
@@ -500,60 +581,110 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 		array = append(array[:index], array[index + 1:]...)
 
 		// 配列を再度文字列に変換して格納
-		return strings.Join(array, " ")
+		return strings.Join(array, " "), false
 	} else if func_name == "rand" {
 		// args[0] は開始値、args[1] は終了値
-		start, err := strconv.Atoi(variables_replacer(variables, args[0], false))
+		start, err := strconv.Atoi(variables_replacer(variables, args_str[0], args_in_quote2[0], false))
 		if err != nil {
 			fmt.Println("The error occurred in rand. [1] / 開始値が(変数の中の値が)数値でないためエラーが発生しました。")
 			fmt.Println(err)
 		}
 
-		end, err := strconv.Atoi(variables_replacer(variables, args[1], false))
+		end, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
 		if err != nil {
 			fmt.Println("The error occurred in rand. [2] / 終了値が(変数の中の値が)数値でないためエラーが発生しました。")
 			fmt.Println(err)
 		}
 
-		return strconv.Itoa(rand.IntN(end - start) + start)
+		return strconv.Itoa(rand.IntN(end - start) + start), false
 	} else if func_name == "convert" {
 		// args[0] は変換する値、args[1] は変換後の型
 		switch args[1] {
 		case "int":
 			// 小数点があったら、それを取り除く
-			val, err := strconv.Atoi(strings.Split(variables_replacer(variables, args[0], false), ".")[0])
+			val, err := strconv.Atoi(strings.Split(variables_replacer(variables, args_str[0], args_in_quote2[0], false), ".")[0])
 			if err != nil {
 				fmt.Println("The error occurred in convert. [1] / 変換する値が(変数の中の値が)数値でないためエラーが発生しました。")
 				fmt.Println(err)
 			}
 
-			return strconv.Itoa(val)
+			return strconv.Itoa(val), args_in_quote2[0]
 		case "float":
-			val, err := strconv.ParseFloat(variables_replacer(variables, args[0], false), 64)
+			val, err := strconv.ParseFloat(variables_replacer(variables, args_str[0], args_in_quote2[0], false), 64)
 			if err != nil {
 				fmt.Println("The error occurred in convert. [2] / 変換する値が(変数の中の値が)数値でないためエラーが発生しました。")
 				fmt.Println(err)
 			}
 
-			return strconv.FormatFloat(val, 'f', 10, 64)
+			return strconv.FormatFloat(val, 'f', 10, 64), args_in_quote2[0]
 		}
 	} else if func_name == "repeat" {
 		// args[0] は繰り返す文字列、args[1] は繰り返す回数
-		repeat_num, err := strconv.Atoi(variables_replacer(variables, args[1], false))
+		repeat_num, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
 		if err != nil {
 			fmt.Println("The error occurred in repeat. [1] / 繰り返す回数が(変数の中の値が)数値でないためエラーが発生しました。")
 			fmt.Println(err)
 		}
 
-		return strings.Repeat(variables_replacer(variables, args[0], false), repeat_num)
+		return strings.Repeat(variables_replacer(variables, args_str[0], args_in_quote2[0], false), repeat_num), args_in_quote2[0]
+	} else if func_name == "all" {
+		// argsの長さが1より大きければ、args[0:]が値or変数名
+		if len(args) > 1 {
+			for i, arg := range(args) {
+				mem := variables_replacer(variables, arg, args_in_quote2[i], false)
+				if mem != "1" && mem != "true" {
+					return "false", false
+				}
+			}
+
+			return "true", false
+		}
+
+		// args[0] は変数名の配列
+		// すべての変数が1もしくはtrueであるか確認
+		mem := split(variables_replacer(variables, args_str[0], args_in_quote2[0], false))
+		vals, vals_in_quote := divide_split(mem)
+
+		for i, val := range(vals) {
+			if variables_replacer(variables, val, vals_in_quote[i], false) != "1" && variables_replacer(variables, val, vals_in_quote[i], false) != "true" {
+				return "false", false
+			}
+		}
+
+		return "true", false
+	} else if func_name == "any" {
+		// argsの長さが1より大きければ、args[0:]が値or変数名
+		if len(args) > 1 {
+			for i, arg := range(args) {
+				mem := variables_replacer(variables, arg, args_in_quote2[i], false)
+				if mem == "1" || mem == "true" {
+					return "true", false
+				}
+			}
+
+			return "false", false
+		}
+
+		// args[0] は変数名の配列
+		// どれかの変数が1もしくはtrueであるか確認
+		mem := split(variables_replacer(variables, args_str[0], args_in_quote2[0], false))
+		vals, vals_in_quote := divide_split(mem)
+
+		for i, val := range(vals) {
+			if variables_replacer(variables, val, vals_in_quote[i], false) == "1" || variables_replacer(variables, val, vals_in_quote[i], false) == "true" {
+				return "true", false
+			}
+		}
+
+		return "false", false
 	} else if func_name == "" {
 		for i, arg := range(args) {
-			args[i] = variables_replacer(variables, arg, true)
+			args[i] = variables_replacer(variables, arg, args_in_quote2[i], true)
 		}
 
 		var formula string = strings.Join(args, " ")
 
-		return calc_expression(formula, map[string]interface{}{})
+		return calc_expression(formula, map[string]interface{}{}), false
 	// もしもfunc_nameがsharpsに含まれていたら、その関数を実行
 	} else if _, ok := (*sharps)[func_name]; ok {
 		// args[0:] は引数
@@ -563,12 +694,17 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 		if len(args) != len(split((*sharps)[func_name][0])) {
 			fmt.Println("The error occurred in sharp_functions. [2] / 引数の数が一致していないためエラーが発生しました。")
 			fmt.Println("The number of arguments is not match.")
-			return ""
+			return "", false
 		}
 
 		// 引数を変数に格納
+		arg_str, arg_in_quote := divide_split(split((*sharps)[func_name][0]))
 		for i, arg := range(args) {
-			(*variables)[split((*sharps)[func_name][0])[i]] = variables_replacer(variables, arg, false)
+			if arg_in_quote[i] {
+				(*variables)[arg_str[i]] = arg
+			} else {
+				(*variables)[arg_str[i]] = variables_replacer(variables, arg, arg_in_quote[i], false)
+			}
 		}
 
 		// 関数の中身を実行
@@ -583,15 +719,16 @@ func sharp_functions(func_name string, args []string, variables *map[string]stri
 		}
 
 		// 関数の中身を実行した後、関数の中身で定義された変数を削除
-		for _, arg := range(split((*sharps)[func_name][0])) {
-			delete(*variables, arg)
+		for _, arg := range(arg_str) {
+			delete((*variables), arg)
 		}
 
 		// 返り値を返す
-		return (*variables)["0__return__"]
+		// 文字列か文字列じゃないかのboolも返す
+		return (*variables)["return"], false
 	}
 
-	return ""
+	return "", false
 }
 
 func (p Parse) runner(variables *map[string]string, functions *map[string][]string, sharps *map[string][]string, before_func_name *string, top bool) int {
@@ -604,17 +741,18 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		-1: エラー、異常終了
 	*/
 	name := p.parsed_meaning.name
-    conjunction := p.parsed_meaning.conjunction
-    value := p.parsed_meaning.value
+	conjunction := p.parsed_meaning.conjunction
+	value := p.parsed_meaning.value
+	value_in_quotes := p.parsed_meaning.value_in_quotes
 
-    if name == "None" {
-        return 0
-    }
+	if name == "None" {
+		return 0
+	}
 
-    if name == "$" {
-        code := *before_func_name + " " + conjunction + " " + strings.Join(value, " ")
-        parsedCode := parser(code)
-        status := parsedCode.runner(variables, functions, sharps, before_func_name, false)
+	if name == "$" {
+		code := *before_func_name + " " + conjunction + " " + strings.Join(value, " ")
+		parsedCode := parser(code)
+		status := parsedCode.runner(variables, functions, sharps, before_func_name, false)
 		if status == 1 {
 			return 1
 		} else if status == 2 {
@@ -622,31 +760,34 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		} else if status == 3 {
 			return 3
 		}
-        return 0
-    }
+		return 0
+	}
 
-    for i, val := range(value) {
+	for i, val := range(value) {
 		if name != "while" && name != "if" && name != "match" {
 			if strings.HasPrefix(val, "#") {
 				func_name := strings.Split(val, "(")[0][1:]
 				re := regexp.MustCompile(`^#[^\(]*\(|\)$`)
+
 				args := split(re.ReplaceAllString(val, ""))
-				value[i] = sharp_functions(func_name, args, variables, functions, sharps)
+				args_str, args_in_quote := divide_split(args)
+
+				value[i], value_in_quotes[i] = sharp_functions(func_name, args_str, args_in_quote, variables, functions, sharps)
 			}
 		}
-    }
+	}
 	
-    mem := &value
-    if name != "if" {
-        for i, val := range(*mem) {
-            (*mem)[i] = take_off_quotation(val)
-            if strings.HasPrefix(val, "(") && strings.HasSuffix(val, ")") {
-                (*mem)[i] = strings.Trim(val, "()")
-            } else if strings.HasPrefix(val, "{") && strings.HasSuffix(val, "}") {
-                (*mem)[i] = strings.Trim(val, "{}")
-            }
-        }
-    }
+	mem := &value
+	if name != "if" {
+		for i, val := range(*mem) {
+			(*mem)[i] = take_off_quotation(val)
+			if strings.HasPrefix(val, "(") && strings.HasSuffix(val, ")") {
+				(*mem)[i] = strings.Trim(val, "()")
+			} else if strings.HasPrefix(val, "{") && strings.HasSuffix(val, "}") {
+				(*mem)[i] = strings.Trim(val, "{}")
+			}
+		}
+	}
 
 	// valueにカッコがついている場合は取り除く
 	for i, val := range(*mem) {
@@ -662,25 +803,25 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		package_name := strings.Split(name, ".")[0]
 		val, ok := packages[package_name]
 		if ok {
-			val(strings.Split(name, ".")[1], value, variables)
+			val(strings.Split(name, ".")[1], value, value_in_quotes, variables)
 		}
 
 		// もしもpackages_with_functionsにnameが含まれていたら、そのパッケージを実行
 		val2, ok2 := packages_with_functions[package_name]
 		if ok2 {
-			val2(strings.Split(name, ".")[1], value, variables, functions)
+			val2(strings.Split(name, ".")[1], value, value_in_quotes, variables, functions)
 		}
 
 		if name == "print" {
-			fmt.Print(giveSymbols(variables_replacer(variables, value[0], false)))
+			fmt.Print(giveSymbols(variables_replacer(variables, value[0], value_in_quotes[0], false)))
 		}
 
 		if name == "printf" {
-			fmt.Print(giveSymbols(variables_replacers((*variables), value[0], value[1:])))
+			fmt.Print(giveSymbols(variables_replacers((*variables), value[0], value[1:], value_in_quotes[1:])))
 		}
 
 		if name == "println" {
-			fmt.Println(giveSymbols(variables_replacer(variables, value[0], false)))
+			fmt.Println(giveSymbols(variables_replacer(variables, value[0], value_in_quotes[0], false)))
 		}
 
 		if name == "if" {
@@ -689,15 +830,17 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 					func_name := strings.Split(val, "(")[0][1:]
 					re := regexp.MustCompile(`^#[^\(]*\(|\)$`)
 					args := split(re.ReplaceAllString(val, ""))
-					value[i] = sharp_functions(func_name, args, variables, functions, sharps)
+					args_str, args_in_quote := divide_split(args)
+					value[i], value_in_quotes[i] = sharp_functions(func_name, args_str, args_in_quote, variables, functions, sharps)
 				}
 			}
 
 			if len(value) == 4 && value[2] == "else" {
 				if value[0] == "true" || value[0] == "1" {
 					// value[1]と[3] は {} で囲まれた部分。[2]はelse
-					codes := strings.Join(split(value[1]), " ")
-					parsed_codes := splitOutsideSemicolons(codes)
+					codes, _ := divide_split(split(value[1]))
+					codes_str := strings.Join(codes, " ")
+					parsed_codes := splitOutsideSemicolons(codes_str)
 
 					for _, code := range(parsed_codes) {
 						p := parser(code)
@@ -712,8 +855,9 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 					}
 				} else if value[0] == "false" || value[0] == "0" {
 					// value[1]と[3] は {} で囲まれた部分。[2]はelse
-					codes := strings.Join(split(value[3]), " ")
-					parsed_codes := splitOutsideSemicolons(codes)
+					codes, _ := divide_split(split(value[3]))
+					codes_str := strings.Join(codes, " ")
+					parsed_codes := splitOutsideSemicolons(codes_str)
 					
 					for _, code := range(parsed_codes) {
 						p := parser(code)
@@ -728,8 +872,9 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 					}
 				}
 			} else if value[0] == "true" || value[0] == "1" {
-				codes := strings.Join(split(value[1]), " ")
-				parsed_codes := splitOutsideSemicolons(codes)
+				codes, _ := divide_split(split(value[1]))
+				codes_str := strings.Join(codes, " ")
+				parsed_codes := splitOutsideSemicolons(codes_str)
 
 				for _, code := range(parsed_codes) {
 					p := parser(code)
@@ -746,8 +891,9 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 				for i := 1; i < len(value); i += 1 {
 					if value[i] == "elif" {
 						if value[i + 1] == "true" || value[i + 1] == "1" {
-							codes := strings.Join(split(value[i + 2]), " ")
-							parsed_codes := splitOutsideSemicolons(codes)
+							codes, _ := divide_split(split(value[i + 2]))
+							codes_str := strings.Join(codes, " ")
+							parsed_codes := splitOutsideSemicolons(codes_str)
 
 							for _, code := range(parsed_codes) {
 								p := parser(code)
@@ -764,8 +910,9 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 							break
 						}
 					} else if value[i] == "else" {
-						codes := strings.Join(split(value[i + 1]), " ")
-						parsed_codes := splitOutsideSemicolons(codes)
+						codes, _ := divide_split(split(value[i + 1]))
+						codes_str := strings.Join(codes, " ")
+						parsed_codes := splitOutsideSemicolons(codes_str)
 
 						for _, code := range(parsed_codes) {
 							p := parser(code)
@@ -804,14 +951,15 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 			if strings.HasPrefix(value[0], "#") {
 				func_name := strings.Split(value[0], "(")[0][1:]
 				args := split(strings.Trim(strings.Split(value[0], "(")[1], ")"))
-				sharp = sharp_functions(func_name, args, variables, functions, sharps)
+				args_str, args_in_quote := divide_split(args)
+				sharp, _ = sharp_functions(func_name, args_str, args_in_quote, variables, functions, sharps)
 			}
 
 			if sharp != "" {
 				value[0] = sharp
 			}
 
-			eval := calc_expression(variables_replacer(variables, value[0], true), map[string]interface{}{})
+			eval := calc_expression(variables_replacer(variables, value[0], value_in_quotes[0], false), map[string]interface{}{})
 			
 			var control string = ""
 			for eval == "true" || eval == "1" {
@@ -844,14 +992,16 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 				if strings.HasPrefix(value[0], "#") {
 					func_name := strings.Split(value[0], "(")[0][1:]
 					args := split(strings.Trim(strings.Split(value[0], "(")[1], ")"))
-					sharp = sharp_functions(func_name, args, variables, functions, sharps)
+					args_str, args_in_quote := divide_split(args)
+
+					sharp, _ = sharp_functions(func_name, args_str, args_in_quote, variables, functions, sharps)
 				}
 
 				if sharp != "" {
 					value[0] = sharp
 				}
 
-				eval = calc_expression(variables_replacer(variables, value[0], true), map[string]interface{}{})
+				eval = calc_expression(variables_replacer(variables, value[0], value_in_quotes[0], false), map[string]interface{}{})
 			}
 		}
 
@@ -862,11 +1012,16 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 			var control string = ""
 
 			if value[1] == ">" {
-			_, ok := (*variables)[value[0]]
-			if !ok {
-					fmt.Println("The error occurred in each(function). [1] / 配列名が見つからないためエラーが発生しました。")
-					fmt.Println("The array name is not found.")
-					return -1
+				val, ok := (*variables)[value[0]]
+				if !ok {
+					// 無くても、配列の形をしていれば良い
+					if len(strings.Split(value[0], " ")) == 1 {
+						fmt.Println("The error occurred in each(function). [1] / 配列名が見つからないためエラーが発生しました。")
+						fmt.Println("The array name is not found.")
+						return -1
+					} else {
+						val = value[0]
+					}
 				}
 
 				// value[2]の変数名が既に存在する場合は、警告を出す
@@ -877,7 +1032,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 				}
 
 				// 配列名が存在する場合は、その配列を取得
-				array := strings.Split((*variables)[value[0]], " ")
+				array := strings.Split(val, " ")
 
 				for _, val := range(array) {
 					(*variables)[value[2]] = take_off_quotation(val)
@@ -912,11 +1067,16 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 			} else if value[1] == ":" {
 				// value[0] は配列名、value[2] は回している配列のインデックスを入れる変数名、value[3] は実行する中身
 				// 配列名が存在するか確認
-				_, ok := (*variables)[value[0]]
+				val, ok := (*variables)[value[0]]
 				if !ok {
-					fmt.Println("The error occurred in each(function). [2] / 配列名が見つからないためエラーが発生しました。")
-					fmt.Println("The array name is not found.")
-					return -1
+					// 無くても、配列の形をしていれば良い
+					if len(strings.Split(value[0], " ")) == 1 {
+						fmt.Println("The error occurred in each(function). [2] / 配列名が見つからないためエラーが発生しました。")
+						fmt.Println("The array name is not found.")
+						return -1
+					} else {
+						val = value[0]
+					}
 				}
 
 				// value[2]の変数名が既に存在する場合は、警告を出す
@@ -927,7 +1087,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 				}
 
 				// 配列名が存在する場合は、その配列を取得
-				array := strings.Split((*variables)[value[0]], " ")
+				array := strings.Split(val, " ")
 
 				for i := 0; i < len(array); i++ {
 					(*variables)[value[2]] = strconv.Itoa(i)
@@ -971,27 +1131,29 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 			if strings.HasPrefix(value[0], "#") {
 				func_name := strings.Split(value[0], "(")[0][1:]
 				args := split(strings.Trim(strings.Split(value[0], "(")[1], ")"))
-				sharp = sharp_functions(func_name, args, variables, functions, sharps)
-			} else {
-				value[0] = variables_replacer(variables, take_off_quotation(value[0]), true)
-			}
+				args_str, args_in_quote := divide_split(args)
 
-			if sharp != "" {
-				value[0] = sharp
+				sharp, _ = sharp_functions(func_name, args_str, args_in_quote, variables, functions, sharps)
+
+				if sharp != "" {
+					value[0] = sharp
+				}
+			} else {
+				value[0] = variables_replacer(variables, value[0], value_in_quotes[0], false)
 			}
 
 			// 計算できそうだったら計算する
 			var eval string = ""
-			mem, err := govaluate.NewEvaluableExpression(variables_replacer(variables, value[0], true))
-			if err != nil {
-				eval = variables_replacer(variables, value[0], true)
-			} else {
+			mem, err := govaluate.NewEvaluableExpression(variables_replacer(variables, value[0], value_in_quotes[0], false))
+			if err == nil {
 				_, err2 := mem.Evaluate(map[string]interface{}{})
 				if err2 == nil {
-					eval = calc_expression(variables_replacer(variables, value[0], true), map[string]interface{}{})
-				} else {
-					eval = variables_replacer(variables, value[0], true)
+					eval = calc_expression(variables_replacer(variables, value[0], value_in_quotes[0], false), map[string]interface{}{})
 				}
+			}
+
+			if eval != "" {
+				value[0] = eval
 			}
 
 			var all_false bool = true
@@ -1001,37 +1163,22 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 					// それ以外は変数の値と同じかどうかを評価する
 					var sharped bool = false
 
-					var sharp string = ""
-					for _, val := range(split(value[i + 1])) {
-						// シャープ関数の処理
-						if strings.HasPrefix(val, "#") {
-							func_name := strings.Split(val, "(")[0][1:]
-							args := split(strings.Trim(strings.Split(val, "(")[1], ")"))
-							for k, arg := range(args) {
-								if arg == "_" {
-									args[k] = eval
-								}
-							}
+					if strings.HasPrefix(value[i + 1], "#") {
+						func_name := strings.Split(value[i + 1], "(")[0][1:]
+						args := split(strings.Trim(strings.Split(value[i + 1], "(")[1], ")"))
+						args_str, args_in_quote := divide_split(args)
 
-							sharp = sharp_functions(func_name, args, variables, functions, sharps)
-						}
-
-						if sharp != "" {
-							value[i + 1] = sharp
-							sharped = true
-						}
+						value[i + 1], _ = sharp_functions(func_name, args_str, args_in_quote, variables, functions, sharps)
+						sharped = true
+					} else {
+						value[i + 1] = variables_replacer(variables, value[i + 1], value_in_quotes[i + 1], false)
 					}
 
-					// もしvalue[i + 1]が文字列だったら、ダブルクォーテーションで囲まれているかどうかを確認する (囲まれていない場合は囲む)
-					if !strings.HasPrefix(value[i + 1], "\"") && !strings.HasSuffix(value[i + 1], "\"") {
-						_, err := strconv.Atoi(value[i + 1])
-						if err != nil {
-							if len(strings.Split(value[i + 1], " ")) == 1 && value[i + 1] != "true" && value[i + 1] != "false" && value[i + 1] != "1" && value[i + 1] != "0" {
-								value[i + 1] = "\"" + value[i + 1] + "\""
-							}
-						}
+					// もしvalue[i + 1]が配列の変数だった場合は、value[i + 1]を展開する
+					if !sharped {
+						value[i + 1] = variables_replacer(variables, value[i + 1], value_in_quotes[i + 1], false)
 					}
-
+					
 					if len(value) > i + 2 {
 						// もしvalue[i + 1]が配列だった場合は、その配列の中にvalue[0]が含まれているかどうかを評価する
 						if sharped && (value[i + 1] == "true" || value[i + 1] == "1") {
@@ -1109,7 +1256,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		}
 
 		if name == "calc" {
-			(*variables)[value[0]] = calc_expression(variables_replacers((*variables), value[1], value[2:]), map[string]interface{}{})
+			(*variables)[value[0]] = calc_expression(variables_replacers((*variables), value[1], value[2:], value_in_quotes[2:]), map[string]interface{}{})
 		}
 
 		if name == "input" {
@@ -1120,10 +1267,32 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 
 		if name == "vars" {
 			// value[0] は変数名の配列、value[1] は変数の値の配列
-			names := strings.Split(value[0], " ")
-			values := strings.Split(value[1], " ")
+			splited_names := split(value[0])
+			splited_values := split(value[1])
+
+			names, _ := divide_split(splited_names)
+			values, _ := divide_split(splited_values)
+
+			mem := split(strings.Join(values, " "))
+			new_values, new_values_in_quote := divide_split(mem)
+
+			// シャープがあった場合は、その関数を実行してから変数に格納する
+			for i := 0; i < len(new_values); i += 1 {
+				if strings.HasPrefix(new_values[i], "#") {
+					func_name := strings.Split(new_values[i], "(")[0][1:]
+					args := split(strings.Trim(strings.Split(new_values[i], "(")[1], ")"))
+					args_str, args_in_quote := divide_split(args)
+					
+					new_values[i], new_values_in_quote[i] = sharp_functions(func_name, args_str, args_in_quote, variables, functions, sharps)
+				}
+			}
+
 			for i, name := range(names) {
-				(*variables)[name] = variables_replacer(variables, values[i], false)
+				if len(strings.Split(new_values[i], " ")) == 1 {
+					(*variables)[name] = take_off_quotation(variables_replacer(variables, new_values[i], new_values_in_quote[i], false))
+				} else {
+					(*variables)[name] = new_values[i]
+				}
 			}
 		}
 
@@ -1143,20 +1312,20 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 
 				if len(value) == 3 {
 					// それ以外はvalue[2]をarrayとみなして、その配列からランダムに1つ選ぶ
-					array := strings.Split(variables_replacer(variables, value[2], false), " ")
+					array := strings.Split(variables_replacer(variables, value[2], value_in_quotes[2], false), " ")
 					// arrayからランダムに1つ選ぶ
 					result = array[rand.IntN(len(array))]
 				} else {
 					if value[2] == "int" {
-						start, _ = strconv.Atoi(variables_replacer(variables, value[3], false))
-						end, _ = strconv.Atoi(variables_replacer(variables, value[4], false))
+						start, _ = strconv.Atoi(variables_replacer(variables, value[3], value_in_quotes[3], false))
+						end, _ = strconv.Atoi(variables_replacer(variables, value[4], value_in_quotes[4], false))
 						result = strconv.Itoa(rand.IntN(end - start) + start)
 					} else if value[2] == "float" {
-						start, _ = strconv.Atoi(variables_replacer(variables, value[3], false))
-						end, _ = strconv.Atoi(variables_replacer(variables, value[4], false))
+						start, _ = strconv.Atoi(variables_replacer(variables, value[3], value_in_quotes[3], false))
+						end, _ = strconv.Atoi(variables_replacer(variables, value[4], value_in_quotes[4], false))
 						result = strconv.FormatFloat(rand.Float64() * float64(end - start) + float64(start), 'f', 10, 64)
 					} else if value[2] == "array" {
-						array := strings.Split(variables_replacer(variables, value[3], false), " ")
+						array := strings.Split(variables_replacer(variables, value[3], value_in_quotes[3], false), " ")
 						// arrayからランダムに1つ選ぶ
 						result = array[rand.IntN(len(array))]
 					}
@@ -1178,13 +1347,13 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		}
 
 		if name == "return" {
-			(*variables)["0__return__"] = variables_replacer(variables, value[0], false)
+			(*variables)["0__return__"] = variables_replacer(variables, value[0], value_in_quotes[0], false)
 			return 1
 		}
 
 		if name == "runmyself" {
 			// value[0]を再度パースして実行
-			for _, code := range(splitOutsideSemicolons(variables_replacer(variables, value[0], false))) {
+			for _, code := range(splitOutsideSemicolons(variables_replacer(variables, value[0], value_in_quotes[0], false))) {
 				p := parser(code)
 				status := p.runner(variables, functions, sharps, before_func_name, false)
 				if status == 1 {
@@ -1206,16 +1375,29 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		}
 
 		if name == "delete" {
-			// value[0] は変数名
-			// 変数が存在するか確認
-			_, ok := (*variables)[value[0]]
-			if !ok {
-				fmt.Println("The error occurred in delete. [1] / 変数名が見つからないためエラーが発生しました。")
-				fmt.Println("The variable name is not found.")
-				return -1
+			// もし変数名が複数あったら、それらをすべて削除する
+			if len(value) >= 2 {
+				for _, val := range(value) {
+					_, ok := (*variables)[val]
+					if !ok {
+						fmt.Println("The error occurred in delete. [1] / 変数名が見つからないためエラーが発生しました。")
+						fmt.Println("The variable name is not found.")
+						return -1
+					}
+					delete((*variables), val)
+				}
+			} else {
+				// value[0] は変数名
+				// 変数が存在するか確認
+				_, ok := (*variables)[value[0]]
+				if !ok {
+					fmt.Println("The error occurred in delete. [2] / 変数名が見つからないためエラーが発生しました。")
+					fmt.Println("The variable name is not found.")
+					return -1
+				}
+
+				delete((*variables), value[0])
 			}
-			
-			delete((*variables), value[0])
 		}
 
 		if name == "swap" {
@@ -1243,7 +1425,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		// toがあったら、その変数に返り値を格納する
 		if _, ok := (*functions)[name]; ok {
 			args := strings.Split((*functions)[name][0], " ")
-			splited_value := split(value[0])
+			splited_value, _ := divide_split(split(value[0]))
 			
 			if len(args) != 0 && len(splited_value) != 0 && len(args) == len(splited_value) {
 				for i, arg := range(args) {
@@ -1254,8 +1436,11 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 					if strings.HasPrefix(splited_value[i], "#") {
 						func_name := strings.Split(splited_value[i], "(")[0][1:]
 						re := regexp.MustCompile(`^#[^\(]*\(|\)$`)
+
 						args := split(re.ReplaceAllString(splited_value[i], ""))
-						splited_value[i] = sharp_functions(func_name, args, variables, functions, sharps)
+						args_str, args_in_quote := divide_split(args)
+						
+						splited_value[i], _ = sharp_functions(func_name, args_str, args_in_quote, variables, functions, sharps)
 					}
 
 					// もしsplited_value[i]に波括弧があったら、その中身を取り出す
@@ -1291,7 +1476,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 			// そもそもvalue[1]が存在するか確認
 			if len(value) > 2 {
 				if value[1] == "to" {
-					(*variables)[value[2]] = variables_replacer(variables, (*variables)["0__return__"], false)
+					(*variables)[value[2]] = variables_replacer(variables, (*variables)["0__return__"], false, false)
 				}
 			}
 
@@ -1312,22 +1497,32 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		
 		if len(value) == 1 {
 			if len(strings.Split(value[0], " ")) > 1 {
-				array_value := strings.Split(value[0], " ")
+				array_value, array_value_in_quotes := divide_split(split(value[0]))
 				for i := 1; i < len(array_value); i++ {
-					array_value[i] = variables_replacer(variables, array_value[i], false)
+					// もし#があったら、その関数を実行してから格納する
+					if strings.HasPrefix(array_value[i], "#") {
+						func_name := strings.Split(array_value[i], "(")[0][1:]
+						args := split(strings.Trim(strings.Split(array_value[i], "(")[1], ")"))
+						args_str, args_in_quote := divide_split(args)
+
+						array_value[i], _ = sharp_functions(func_name, args_str, args_in_quote, variables, functions, sharps)
+					}
+
+					array_value[i] = variables_replacer(variables, array_value[i], array_value_in_quotes[i], true)
 				}
+
 				array_value_edited := strings.Join(array_value, " ")
 
 				(*variables)[name] = array_value_edited
 			} else {
-				(*variables)[name] = variables_replacer(variables, value[0], false)
+				(*variables)[name] = variables_replacer(variables, value[0], value_in_quotes[0], false)
 			}
 		} else if value[0] == "value" {
-			(*variables)[name] = variables_replacer(variables, value[1], false)
+			(*variables)[name] = variables_replacer(variables, value[1], value_in_quotes[1], false)
 		} else if value[0] == "array" {
-			array_value := split(value[1])
+			array_value, array_value_in_quotes := divide_split(split(value[1]))
 			for i := 1; i < len(array_value); i++ {
-				array_value[i] = variables_replacer(variables, array_value[i], false)
+				array_value[i] = variables_replacer(variables, array_value[i], array_value_in_quotes[i], false)
 			}
 			array_value_edited := strings.Join(array_value, " ")
 
@@ -1349,10 +1544,10 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 				}
 			}
 
-			value1, err3 = strconv.Atoi(variables_replacer(variables, value[1], false))
+			value1, err3 = strconv.Atoi(variables_replacer(variables, value[1], value_in_quotes[1], false))
 			if err3 != nil {
 				// 小数として格納されている場合
-				value1_float, err4 = strconv.ParseFloat(variables_replacer(variables, value[1], false), 64)
+				value1_float, err4 = strconv.ParseFloat(variables_replacer(variables, value[1], value_in_quotes[1], false), 64)
 				if err4 != nil {
 					fmt.Println("The error occurred in variables. [2] / 変数が数値でないためエラーが発生しました。")
 					fmt.Println(err4)
@@ -1412,7 +1607,6 @@ func main() {
 	var code string = ""
 	var path string
 
-	// もし run なら
 	args := os.Args
 	if len(args) == 1 {
 		fmt.Println("The error occurred in main. [2] / コマンドが指定されていないためエラーが発生しました。")
@@ -1420,6 +1614,7 @@ func main() {
 		return
 	}
 
+	// もし run なら
 	if args[1] == "run" {
 		path = args[2]
 		// ファイルを読み込む
