@@ -1175,6 +1175,12 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 						args := split(strings.Trim(strings.Split(value[i + 1], "(")[1], ")"))
 						args_str, args_in_quote := divide_split(args)
 
+						for j, arg := range(args_str) {
+							if arg == "_" {
+								args_str[j] = value[0]
+							}
+						}
+
 						value[i + 1], _ = sharp_functions(func_name, args_str, args_in_quote, variables, functions, sharps)
 						sharped = true
 					} else {
