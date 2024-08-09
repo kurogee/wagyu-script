@@ -1,4 +1,7 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/kurogee/wagyu-script)](https://goreportcard.com/report/github.com/kurogee/wagyu-script)
+
 ![Wagyu-script's logo](./Wagyu-script_logo.png)
+
 Wagyu-script
 ---
 Wagyu-scriptは、@kurogeが開発した半角スペース区切りが特徴のシンプルなプログラミング言語です。/ Wagyu-script is a simple programming language developed by @kuroge, which is characterized by half-width space separation.

@@ -53,7 +53,7 @@ sharp function name (argument 1 argument 2 ...) {
 ```
 ※ Leave a space between the function name and the argument.
 
-This function can be called in the form ``#function name (argument 1 argument 2 ...)``, and the return value of ``return`` will be returned to wherever this function is entered.
+This function can be called in the form ``#function name(argument 1 argument 2 ...)``, and the return value of ``return`` will be returned to wherever this function is entered.
 
 The following is an example of a sharp function that returns the sum of two numbers entered as arguments.
 ```
@@ -99,7 +99,7 @@ arr = array (2 3 1 5 4);
 | round(value number of decimal places) | Returns the value rounded to the specified number of decimal places | ``#math.round(3.14 1)`` → ``3.10`` |
 
 ### string package
-The string package allows you to manipulate strings. The function format is #string.function name, which is omitted in the ``Function Name`` column of the table.
+The string package allows you to manipulate strings. The function format is ``#string.function name``, which is omitted in the ``Function Name`` column of the table.
 
 The variables in this explanation example have the following values:
 ```
@@ -109,9 +109,11 @@ str = value "Hello, World!";
 | Function name | Execution content | Example |
 |---|---|---|
 | replace(string before after number of replacements) | Replaces the string before with the string after in the target string. The ``number of replacements`` can be omitted. If omitted, all replacements will be made. | ``#replace(str "Hello" "Hi")`` → ``"Hi, World!"`` | 
+| include(value string) | Returns whether the value contains the string | ``#include(str "Hello")`` → ``true`` |
+| substr(value start position length) | Returns a substring of the value from the start position to the specified length | ``#substr(str 7 5)`` → ``"World"`` |
 
 ### array package
-The array package allows you to manipulate arrays. The function format is #array.function name, which is omitted in the ``Function Name`` column of the table.
+The array package allows you to manipulate arrays. The function format is ``#array.function name``, which is omitted in the ``Function Name`` column of the table.
 
 The variables in this explanation example have the following values:
 ```
@@ -121,9 +123,11 @@ arr = array ("apple" "banana" "orange" "grape");
 | Function name | Execution content | Example |
 |---|---|---|
 | search(array value) | Returns the index of the value in the array. Returns ``-1`` if it does not exist | ``#search(arr "banana")`` → ``2`` |
+| split(value delimiter) | Splits the value by the delimiter and returns it as an array | ``#split(arr ",")`` → ``("apple" "banana" "orange" "grape")`` |
+| join(array delimiter) | Joins the array with the delimiter and returns it as a string | ``#join(arr ",")`` → ``"apple,banana,orange,grape"`` |
 
 ### regex package
-The regex package allows you to manipulate strings using regular expressions. The function format is #regex.function name, which is omitted in the ``Function Name`` column of the table.
+The regex package allows you to manipulate strings using regular expressions. The function format is ``#regex.function name``, which is omitted in the ``Function Name`` column of the table.
 
 The variables in this explanation example have the following values:
 ```
@@ -136,7 +140,7 @@ str = value "Hello, World!";
 | find(regex value) | Returns the part of the value that matches the regular expression | ``#regex.find("Hello" str)`` → ``"Hello"`` |
 
 ### date package
-The date package performs operations related to dates. The function format is #date.function name, which is omitted in the ``Function Name`` column of the table.
+The date package performs operations related to dates. The function format is ``#date.function name``, which is omitted in the ``Function Name`` column of the table.
 
 | Function name | Action | Example |
 |---|---|---|
@@ -151,6 +155,13 @@ The date package performs operations related to dates. The function format is #d
 | nowSecond() | Returns the current second | ``56`` |
 | nowDow (nowDayOfWeek) | Returns the current day of the week | (0:Sunday 1:Monday 2:Tuesday 3:Wednesday 4: Thursday 5: Friday 6: Saturday) |
 | nowUnix() | Returns the current UNIX time | ``1234567890`` |
+
+### file package
+The file package allows you to manipulate files. The function format is ``#file.function name``, which is omitted in the ``Function Name`` column of the table.
+
+| Function name | Execution content | Example |
+|---|---|---|
+| read(file name) | Reads a file | ``#file.read("sample.txt")`` |
 
 Examples
 ---

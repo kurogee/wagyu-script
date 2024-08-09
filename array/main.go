@@ -12,6 +12,7 @@ var replace_chars map[string]string = map[string]string{
 	"\\\"" : "__DOUBLE_QUOTATION__",
 	"\\'" : "__SINGLE_QUOTATION__",
 	"\\`" : "__BACK_QUOTATION__",
+	"\\\\\\" : "__BACKSLASH__",
 };
 
 func matchingParen(char rune) rune {
@@ -223,13 +224,23 @@ func Run(name string, value []string, value_in_quotes []bool, variables *map[str
 
 		(*variables)[value[0]] = ""
 	} else if name == "split" {
+		// value[0] = 変数 value[1] = 対象の文字列 value[2] = 区切り文字
 		_, ok := (*variables)[value[0]]
 		if !ok {
 			fmt.Println("The error occurred in split function in array package. [1]")
 			fmt.Println("The variable is not found.")
 		}
 
-		(*variables)[value[0]] = strings.Join(strings.Split(variables_replacer(variables, value[1], value_in_quotes[1], false), value[2]), " ")
+		value[1] = variables_replacer(variables, value[1], value_in_quotes[1], false)
+		value[2] = variables_replacer(variables, value[2], value_in_quotes[2], false)
+
+		splited_args := strings.Split(value[1], value[2])
+
+		for i, val := range(splited_args) {
+			splited_args[i] = "\"" + val + "\""
+		}
+
+		(*variables)[value[0]] = strings.Join(splited_args, " ")
 	} else if name == "join" {
 		_, ok := (*variables)[value[0]]
 		if !ok {
@@ -301,9 +312,9 @@ func Run(name string, value []string, value_in_quotes []bool, variables *map[str
 		}
 
 		// 一回配列に変換してから置換する
-		slice := strings.Split((*variables)[value[0]], " ")
+		slice, _ := divide_split(split((*variables)[value[0]]))
 
-		val := variables_replacer(variables, value[2], value_in_quotes[2], true)
+		val := variables_replacer(variables, value[2], value_in_quotes[2], false)
 		// val = add_quotation(val)
 
 		slice[index] = val
@@ -322,8 +333,9 @@ func Run(name string, value []string, value_in_quotes []bool, variables *map[str
 		}
 
 		// 一回配列に変換してから削除する
-		slice := strings.Split((*variables)[value[0]], " ")
+		slice, _ := divide_split(split((*variables)[value[0]]))
 		slice = append(slice[:index], slice[index + 1:]...)
+
 		(*variables)[value[0]] = strings.Join(slice, " ")
 	} else if name == "sort" {
 		_, ok := (*variables)[value[0]]
@@ -333,7 +345,7 @@ func Run(name string, value []string, value_in_quotes []bool, variables *map[str
 		}
 
 		// 一回配列に変換してからソートする
-		slice := strings.Split((*variables)[value[0]], " ")
+		slice, _ := divide_split(split((*variables)[value[0]]))
 		for i := 0; i < len(slice); i++ {
 			for j := i + 1; j < len(slice); j++ {
 				if slice[i] > slice[j] {
@@ -351,7 +363,7 @@ func Run(name string, value []string, value_in_quotes []bool, variables *map[str
 		}
 
 		// 一回配列に変換してから逆順にする
-		slice := strings.Split((*variables)[value[0]], " ")
+		slice, _ := divide_split(split((*variables)[value[0]]))
 		for i := 0; i < len(slice) / 2; i++ {
 			slice[i], slice[len(slice) - i - 1] = slice[len(slice) - i - 1], slice[i]
 		}
@@ -371,7 +383,7 @@ func Run(name string, value []string, value_in_quotes []bool, variables *map[str
 		}
 
 		// 一回配列に戻す
-		slice := strings.Split((*variables)[value[1]], " ")
+		slice, _ := divide_split(split((*variables)[value[1]]))
 
 		// 配列から値を検索し、そのインデックスをvalue[0]の変数に格納 なければ-1
 		index := -1
@@ -406,6 +418,41 @@ func Sharp(func_name string, args []string, args_in_quote []bool, variables *map
 		}
 
 		return strconv.Itoa(index), false
+	} else if func_name == "split" {
+		// args[0] = 変数 args[1] = 区切り文字
+		args[0] = variables_replacer(variables, args[0], args_in_quote[0], false)
+		args[1] = variables_replacer(variables, args[1], args_in_quote[1], false)
+
+		splited_args := strings.Split(args[0], args[1])
+
+		// 変数が入っている場合は、変数を展開する
+		for i, val := range(splited_args) {
+			splited_args[i] = "\"" + val + "\""
+		}
+
+		return "(" + strings.Join(splited_args, " ") + ")", false
+	} else if func_name == "join" {
+		// args[0] = 値or変数 args[1] = 区切り文字
+		args[0] = variables_replacer(variables, args[0], args_in_quote[0], false)
+		args[1] = variables_replacer(variables, args[1], args_in_quote[1], false)
+
+		// args[0]に直接配列が入っている場合は、両端の括弧を取り除く
+		if strings.HasPrefix(args[0], "(") && strings.HasSuffix(args[0], ")") {
+			args[0] = args[0][1:len(args[0]) - 1]
+		}
+
+		divided_arg, divided_arg_in_quote := divide_split(split(args[0]))
+
+		// 変数が入っている場合は、変数を展開する
+		for i, val := range(divided_arg) {
+			divided_arg[i] = variables_replacer(variables, val, divided_arg_in_quote[i], false)
+		}
+
+		// join関数を実行
+		result := strings.Join(divided_arg, args[1])
+
+		// divided_tokensを返す
+		return result, true
 	}
 
 	return "", false

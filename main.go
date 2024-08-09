@@ -56,6 +56,7 @@ var packages_sharp_functions = Package_sharp_functions{
 	"regex": regex_pack.Sharp,
 	"string": string_pack.Sharp,
 	"array": array_pack.Sharp,
+	"file": file_pack.Sharp,
 }
 
 var replace_chars map[string]string = map[string]string{
@@ -63,6 +64,7 @@ var replace_chars map[string]string = map[string]string{
 	"\\\"" : "__DOUBLE_QUOTATION__",
 	"\\'" : "__SINGLE_QUOTATION__",
 	"\\`" : "__BACK_QUOTATION__",
+	"\\\\\\" : "__BACKSLASH__",
 };
 
 func contains(s []string, e string) bool {
@@ -185,10 +187,10 @@ func split(input string) []map[string]bool {
 		}
 	}
 	
-	// replace_charsを元に戻す
-	for i := 0; i < len(tokens); i++ {
-		for key, value := range(replace_chars) {
-			tokens[i] = strings.ReplaceAll(tokens[i], value, key)
+	// tokensのエスケープシーケンスを元に戻す
+	for key, value := range(replace_chars) {
+		for i, token := range(tokens) {
+			tokens[i] = strings.ReplaceAll(token, value, key)
 		}
 	}
 
@@ -230,17 +232,6 @@ func matchingParen(char rune) rune {
 	}
 	return char
 }
-
-/*
-func replaceSymbols(input string) string {
-	input = strings.ReplaceAll(input, "\n", "\\n")
-	input = strings.ReplaceAll(input, "\t", "\\t")
-	input = strings.ReplaceAll(input, "\\", "\\\\")
-	input = strings.ReplaceAll(input, "\"", "\\\"")
-	input = strings.ReplaceAll(input, "'", "\\'")
-
-	return input
-}*/
 
 func giveSymbols(input string) string {
 	input = strings.ReplaceAll(input, "\\n", "\n")
@@ -558,6 +549,7 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 		// 変数を宣言し、args[0]にargs[1]を代入
 		// 変数名を返す
 		(*variables)[args[0]] = variables_replacer(variables, args_str[1], args_in_quote2[1], false)
+		
 		return args[0], args_in_quote2[0]
 	} else if func_name == "remove" {
 		// args[0] は配列名、args[1] は削除する値のインデックス
@@ -1604,6 +1596,11 @@ func splitOutsideSemicolons(input string) []string {
 	var result []string
 	var count int = 0
 	var mem string = ""
+
+	// \;を__SEMICOLON__に変換
+	re := regexp.MustCompile(`\\;`)
+	input = re.ReplaceAllString(input, "__SEMICOLON__")
+
 	for _, val := range(strings.Split(input, ";")) {
 		count += strings.Count(val, "{")
 		count -= strings.Count(val, "}")
@@ -1620,6 +1617,10 @@ func splitOutsideSemicolons(input string) []string {
 		// 空白でなく改行で引数が区切られている場合は、空白に変換する
 		re := regexp.MustCompile(`\n`)
 		result[i] = re.ReplaceAllString(result[i], " ")
+
+		// __SEMICOLON__を;に変換
+		re = regexp.MustCompile(`__SEMICOLON__`)
+		result[i] = re.ReplaceAllString(result[i], ";")
 	}
 
 	return result

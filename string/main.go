@@ -164,6 +164,38 @@ func Sharp(func_name string, args []string, args_in_quote []bool, variables *map
 
 			return strings.Replace(args[0], args[1], args[2], -1), true
 		}
+	} else if func_name == "include" {
+		// args[0] = 対象の文字 args[1] = 検索する文字列
+		for i, v := range(args) {
+			args[i] = variables_replacer(variables, v, args_in_quote[i], false)
+		}
+
+		if strings.Contains(args[0], args[1]) {
+			return "true", false
+		} else {
+			return "false", false
+		}
+	} else if func_name == "substr" {
+		// args[0] = 切り出したい文字 args[1] = 切り出すはじめのインデックス args[2] = 切り出す文字数(長さ)
+		start, err := strconv.Atoi(variables_replacer(variables, args[1], args_in_quote[1], false))
+		if err != nil {
+			fmt.Println("The error occurred in substr sharp function in string package. [1]")
+			fmt.Println(err)
+		}
+
+		length, err := strconv.Atoi(variables_replacer(variables, args[2], args_in_quote[2], false))
+		if err != nil {
+			fmt.Println("The error occurred in substr sharp function in string package. [2]")
+			fmt.Println(err)
+		}
+
+		str := variables_replacer(variables, args[0], args_in_quote[0], false)
+		if start < 0 || start >= len(str) || length < 0 || start+length > len(str) {
+			fmt.Println("The error occurred in substr sharp function in string package. [3]")
+			fmt.Println("Invalid start or length value.")
+		}
+
+		return str[start : start+length], true
 	}
 	
 	return "", false
