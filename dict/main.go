@@ -1,7 +1,6 @@
 package array
 
 import (
-	"fmt"
 	"strings"
 	"strconv"
 	"regexp"
@@ -164,7 +163,7 @@ func Run(name string, value []string, value_in_quotes []bool, variables *map[str
 
 func Sharp(func_name string, args []string, args_in_quote []bool, variables *map[string]string) (string, bool) {
 	if func_name == "get" {
-		// args[0] = 辞書or変数名 args[1] = key
+		// args[0] = 辞書or変数名 args[1] = key -> valueを返す なければ-1を返す
 		// args[0]が変数名かどうかを判定する
 		dict := variables_replacer(variables, args[0], args_in_quote[0], false)
 
@@ -172,14 +171,12 @@ func Sharp(func_name string, args []string, args_in_quote []bool, variables *map
 		dict_map := parseDict(dict, variables)
 
 		// keyを入れる
-		key := args[1]
+		key := variables_replacer(variables, args[1], args_in_quote[1], false)
 
 		// keyが存在するか確認する
 		value, ok := dict_map[key]
 		if !ok {
-			fmt.Println("The error occurred in get sharp function in dict package. [1]")
-			fmt.Println("The key does not exist in the dictionary.")
-			return "", false
+			return "-1", false
 		}
 
 		// valueが数値に変換できそうだったらfalseを返す
@@ -197,7 +194,7 @@ func Sharp(func_name string, args []string, args_in_quote []bool, variables *map
 		dict_map := parseDict(dict, variables)
 
 		// keyを入れる
-		key := args[1]
+		key := variables_replacer(variables, args[1], args_in_quote[1], false)
 
 		// keyが存在するか確認する
 		_, ok := dict_map[key]
@@ -211,9 +208,9 @@ func Sharp(func_name string, args []string, args_in_quote []bool, variables *map
 		dict_map := parseDict(dict, variables)
 
 		// valueを入れる
-		value := variables_replacer(variables, args[1], args_in_quote[1], true)
+		value := variables_replacer(variables, args[1], args_in_quote[1], false)
 
-		// keyを探す
+		// キーを探す
 		for key, val := range dict_map {
 			if val == value {
 				return key, false

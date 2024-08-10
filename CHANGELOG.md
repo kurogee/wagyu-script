@@ -1,3 +1,8 @@
+v1.6.1-beta (2024-08-10)
+---
+ - 辞書型(dictパッケージ)の変数に関する処理の不具合を修正しました
+ - docs/sharp-function.mdを修正しました
+
 v1.6.0-beta (2024-08-10)
 ---
  - Wagyu-scriptシステムのsplit、take_off_quotation、divide_split関数を1つのファイルにまとめて、管理をしやすくしました
