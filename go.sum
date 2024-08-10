@@ -14,3 +14,5 @@ github.com/kurogee/wagyu-script/regex v0.0.0-20240809053045-107323f4c5ff h1:tiB0
 github.com/kurogee/wagyu-script/regex v0.0.0-20240809053045-107323f4c5ff/go.mod h1:WTCDAMpuZnmwnn2J/Tm3JaJPM54b/5Bx341DUPATI08=
 github.com/kurogee/wagyu-script/string v0.0.0-20240809053045-107323f4c5ff h1:K+Uh8LeCixUcAXauE4R53k9w46p9tSKjNxgZzfC+oaI=
 github.com/kurogee/wagyu-script/string v0.0.0-20240809053045-107323f4c5ff/go.mod h1:0sm84thWoDQcUba7yv0nSpS5YT1LC/Jtqk3PBBMMLO4=
+github.com/kurogee/wagyu-script/system-split v0.0.0-20240810100830-038e77afc63d h1:4RBpVAvGY4tQeFdiqSdA/BepIDG1XbpR0qB/2ValLM8=
+github.com/kurogee/wagyu-script/system-split v0.0.0-20240810100830-038e77afc63d/go.mod h1:5tJtIZZH9dNrxdF3b1mi5n7HCXQcrZnld2dgiUHjV3E=

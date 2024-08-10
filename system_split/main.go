@@ -1,4 +1,4 @@
-package systemsplit
+package system_split
 
 import (
 	"regexp"

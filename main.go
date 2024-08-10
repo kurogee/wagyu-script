@@ -8,7 +8,7 @@ import (
 	"math/rand/v2"
 	"os"
 
-	system_split "github.com/kurogee/wagyu-script/system-split"
+	system_split "github.com/kurogee/wagyu-script/system_split"
 
 	array_pack "github.com/kurogee/wagyu-script/array"
 	date_pack "github.com/kurogee/wagyu-script/date"
