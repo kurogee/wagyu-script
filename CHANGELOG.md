@@ -1,3 +1,13 @@
+v1.6.0-beta (2024-08-10)
+---
+ - Wagyu-scriptシステムのsplit、take_off_quotation、divide_split関数を1つのファイルにまとめて、管理をしやすくしました
+ - 辞書型を追加しました
+ - dictパッケージを追加しました
+ - docs/samples.mdを編集しました
+ - docs/get-started.mdを編集しました
+ - docs/sharp-function.mdを編集しました
+ - docs/common-function.mdを編集しました
+
 v1.5.0-beta (2024-08-09)
 ---
  - arrayパッケージのseach関数で正しく値が処理されない問題を修正しました

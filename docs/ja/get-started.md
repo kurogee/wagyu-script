@@ -54,9 +54,10 @@ println "Hello!";println "World!";
 |---|---|---|
 | 文字列型 | string | 文字列（ex: ``"Hello!"``） |
 | 配列型 | array | 配列（ex: ``("Hello" "World" "Wagyu")``） |
-| 正規表現型 (予約) | regex | 正規表現（ex: ```[a-z]```） |
 | 整数型 | int | 整数の値（ex: ``10``） |
 | 小数型 | float | 小数の値（ex: ``3.14``）|
+| 辞書型 | dict | 辞書（ex: ``{"key1" : "value1" "key2" : 2 ...}``） |
+| 正規表現型 (予約) | regex | 正規表現（ex: ```[a-z]```） |
 
 その他の出力
 ---

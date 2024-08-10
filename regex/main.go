@@ -5,19 +5,11 @@ import (
 	"strings"
 	"strconv"
 	"regexp"
+
+	system_split "github.com/kurogee/wagyu-script/system-split"
 )
 
-func take_off_quotation(target string) string {
-	if strings.HasPrefix(target, "'") && strings.HasSuffix(target, "'") {
-		return strings.Trim(target, "'")
-	} else if strings.HasPrefix(target, "\"") && strings.HasSuffix(target, "\"") {
-		return strings.Trim(target, "\"")
-	} else if strings.HasPrefix(target, "`") && strings.HasSuffix(target, "`") {
-		return strings.Trim(target, "`")
-	}
-
-	return target
-}
+var take_off_quotation = system_split.Take_off_quotation
 
 func variables_replacer(variables *map[string]string, target string, target_in_quote, add_quotes bool) string {
 	if target_in_quote {

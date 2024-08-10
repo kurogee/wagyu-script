@@ -1,4 +1,4 @@
-module github.com/kurogee/wagyu-script/array
+module github.com/kurogee/wagyu-script/dict
 
 go 1.22.5
 

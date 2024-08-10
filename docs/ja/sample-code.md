@@ -15,37 +15,24 @@ each y > i {
 };
 ```
 
-### 乱数が素数かどうかを判定するプログラム
+### 任意の数が素数かどうかを判定するプログラム
 ```
-sharp is_prime ($num) {
-    match $num
-    case (2 3 5 7) {
-        return true;
+sharp is_prime ($n) {
+    if #($n < 2) { return false; };
+    if #($n == 2) { return true };
+    if #($n % 2 == 0) { return false };
+
+    mem = #math.sqrt($n);
+    i = 3;
+    while #(i <= mem) {
+        if #($n % i == 0) { return false };
+        i = add 2;
     };
 
-    if #($num == 1) {
-        return false;
-    } else {
-        match $num
-        case #(_ % 2 == 0) {
-            return false;
-        }
-        case #(_ % 3 == 0) {
-            return false;
-        }
-        case #(_ % 5 == 0) {
-            return false;
-        }
-        case #(_ % 7 == 0) {
-            return false;
-        }
-        default {
-            return true;
-        };
-    };
+    return true;
 };
 
-printf ":1:が素数か: :2:\n" #var(x #rand(1 100)) #is_prime(x);
+println #is_prime(89); // true;
 ```
 
 ### 任意個のフィボナッチ数列を出力するプログラム

@@ -1,4 +1,4 @@
-module github.com/kurogee/wagyu-script/get
+module github.com/kurogee/wagyu-script/http
 
 go 1.22.5
 

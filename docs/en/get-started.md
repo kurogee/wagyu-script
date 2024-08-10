@@ -1,3 +1,5 @@
+*English version has not been updated yet. Please wait for a while. or **shall you translate it?***
+
 Get Started
 ---
 In "Get Started," you'll learn about this language, set it up, and get to know it easily.
