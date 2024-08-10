@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	system_split "github.com/kurogee/wagyu-script/system-split"
+	system_split "github.com/kurogee/wagyu-script/system_split"
 )
 
 var take_off_quotation = system_split.Take_off_quotation
