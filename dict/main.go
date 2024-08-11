@@ -44,7 +44,7 @@ func variables_replacer(variables *map[string]string, target string, target_in_q
 	return target
 }
 
-func parseDict(dict string, variables *map[string]string) map[string]string {
+func ParseDict(dict string, variables *map[string]string) map[string]string {
 	// dictは、"key1" : "value1" "key2" : "value2" "key3" : "value3"のような形式
 	// まずは、dictを:がないスペースで分割する
 	// ""はあってもなくてもいい
@@ -64,12 +64,12 @@ func parseDict(dict string, variables *map[string]string) map[string]string {
 		value := match[2]
 
 		// keyとvalueをsplitする
-		splited_key, _ := divide_split(split(key))
+		splited_key, key_in_value := divide_split(split(key))
 		splited_value, value_in_quote := divide_split(split(value))
 
 		// keyとvalueを変数で置き換える
-		key = variables_replacer(variables, splited_key[0], true, false)
-		value = variables_replacer(variables, splited_value[0], value_in_quote[0], true)
+		key = variables_replacer(variables, splited_key[0], key_in_value[0], false)
+		value = variables_replacer(variables, splited_value[0], value_in_quote[0], false)
 
 		dict_map[key] = value
 	}
@@ -111,7 +111,7 @@ func Run(name string, value []string, value_in_quotes []bool, variables *map[str
 		dict := variables_replacer(variables, value[0], value_in_quotes[0], false)
 		
 		// dictをパースする
-		dict_map := parseDict(dict, variables)
+		dict_map := ParseDict(dict, variables)
 
 		// keyとvalueを変数で置き換える
 		splited_value1, _ := divide_split(split(value[1]))
@@ -139,7 +139,7 @@ func Run(name string, value []string, value_in_quotes []bool, variables *map[str
 		dict := variables_replacer(variables, value[0], value_in_quotes[0], false)
 
 		// dictをパースする
-		dict_map := parseDict(dict, variables)
+		dict_map := ParseDict(dict, variables)
 
 		// keyを変数で置き換える
 		splited_value1, _ := divide_split(split(value[1]))
@@ -168,7 +168,7 @@ func Sharp(func_name string, args []string, args_in_quote []bool, variables *map
 		dict := variables_replacer(variables, args[0], args_in_quote[0], false)
 
 		// dictをパースする
-		dict_map := parseDict(dict, variables)
+		dict_map := ParseDict(dict, variables)
 
 		// keyを入れる
 		key := variables_replacer(variables, args[1], args_in_quote[1], false)
@@ -191,7 +191,7 @@ func Sharp(func_name string, args []string, args_in_quote []bool, variables *map
 		dict := variables_replacer(variables, args[0], args_in_quote[0], false)
 
 		// dictをパースする
-		dict_map := parseDict(dict, variables)
+		dict_map := ParseDict(dict, variables)
 
 		// keyを入れる
 		key := variables_replacer(variables, args[1], args_in_quote[1], false)
@@ -205,7 +205,7 @@ func Sharp(func_name string, args []string, args_in_quote []bool, variables *map
 		dict := variables_replacer(variables, args[0], args_in_quote[0], false)
 
 		// dictをパースする
-		dict_map := parseDict(dict, variables)
+		dict_map := ParseDict(dict, variables)
 
 		// valueを入れる
 		value := variables_replacer(variables, args[1], args_in_quote[1], false)

@@ -862,46 +862,90 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 					}
 				}
 
-				// value[2]の変数名が既に存在する場合は、警告を出す
-				_, ok = (*variables)[value[2]]
-				if ok {
-					fmt.Println("The warning issued in each(function). [1] / [警告] 変数名がすでに存在するので、上書きされます。")
-					fmt.Println("The variable name is already exist.")
-				}
+				// value[2]の変数名が配列形式で2つあったら、辞書型のループとして扱う
+				splited_val, _ := divide_split(split(value[2]))
+				if len(splited_val) == 2 {
+					// value[0]を辞書型に戻す
+					dict := dict_pack.ParseDict(val, variables)
 
-				// 配列名が存在する場合は、その配列を取得
-				array, _ := divide_split(split(val))
+					key_var := splited_val[0]
+					value_var := splited_val[1]
 
-				for _, val := range(array) {
-					(*variables)[value[2]] = take_off_quotation(val)
+					for key, val := range(dict) {
+						(*variables)[key_var] = variables_replacer(variables, key, value_in_quotes[0], false)
+						(*variables)[value_var] = variables_replacer(variables, val, value_in_quotes[0], false)
 
-					codes := splitOutsideSemicolons(value[3])
+						codes := splitOutsideSemicolons(value[3])
 
-					for _, code := range(codes) {
-						p := parser(code)
-						status := p.runner(variables, functions, sharps, before_func_name, false)
-						if status == 2 {
-							control = "break"
+						for _, code := range(codes) {
+							p := parser(code)
+							
+							status := p.runner(variables, functions, sharps, before_func_name, false)
+							if status == 2 {
+								control = "break"
+								break
+							} else if status == 3 {
+								control = "continue"
+								break
+							} else if status == 1 {
+								return 1
+							}
+						}
+
+						// もしbreakがあったら、eachを抜ける
+						if control == "break" {
 							break
-						} else if status == 3 {
-							control = "continue"
-							break
-						} else if status == 1 {
-							return 1
+						} else if control == "continue" {
+							control = ""
+							continue
 						}
 					}
 
-					// もしbreakがあったら、eachを抜ける
-					if control == "break" {
-						break
-					} else if control == "continue" {
-						control = ""
-						continue
+					// eachが終わったら、value[2]の変数を削除
+					delete((*variables), key_var)
+					delete((*variables), value_var)
+				} else {
+					// value[2]の変数名が既に存在する場合は、警告を出す
+					_, ok = (*variables)[value[2]]
+					if ok {
+						fmt.Println("The warning issued in each(function). [1] / [警告] 変数名がすでに存在するので、上書きされます。")
+						fmt.Println("The variable name is already exist.")
 					}
-				}
 
-				// eachが終わったら、value[2]の変数を削除
-				delete((*variables), value[2])
+					// 配列名が存在する場合は、その配列を取得
+					array, _ := divide_split(split(val))
+
+					for _, val := range(array) {
+						(*variables)[value[2]] = take_off_quotation(val)
+
+						codes := splitOutsideSemicolons(value[3])
+
+						for _, code := range(codes) {
+							p := parser(code)
+							status := p.runner(variables, functions, sharps, before_func_name, false)
+							if status == 2 {
+								control = "break"
+								break
+							} else if status == 3 {
+								control = "continue"
+								break
+							} else if status == 1 {
+								return 1
+							}
+						}
+
+						// もしbreakがあったら、eachを抜ける
+						if control == "break" {
+							break
+						} else if control == "continue" {
+							control = ""
+							continue
+						}
+					}
+
+					// eachが終わったら、value[2]の変数を削除
+					delete((*variables), value[2])
+				}
 			} else if value[1] == ":" {
 				// value[0] は配列名、value[2] は回している配列のインデックスを入れる変数名、value[3] は実行する中身
 				// 配列名が存在するか確認
@@ -954,6 +998,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 						continue
 					}
 				}
+			} else if value[1] == "" {
 			} else {
 				fmt.Println("The error occurred in each(function). [3] / 繰り返しの種類が不明なためエラーが発生しました。")
 				fmt.Println("The type of repetition is unknown.")

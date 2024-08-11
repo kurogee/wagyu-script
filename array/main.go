@@ -284,6 +284,27 @@ func Sharp(func_name string, args []string, args_in_quote []bool, variables *map
 
 		// divided_tokensを返す
 		return result, true
+	} else if func_name == "same" {
+		// args[0] = 変数 args[1] = 変数
+		// 配列の中身が同じかどうかを判定する
+		args[0] = variables_replacer(variables, args[0], args_in_quote[0], false)
+		args[1] = variables_replacer(variables, args[1], args_in_quote[1], false)
+
+		// 一回配列に変換してから比較する
+		slice1, _ := divide_split(split(args[0]))
+		slice2, _ := divide_split(split(args[1]))
+
+		if len(slice1) != len(slice2) {
+			return "false", false
+		}
+
+		for i := 0; i < len(slice1); i++ {
+			if slice1[i] != slice2[i] {
+				return "false", false
+			}
+		}
+
+		return "true", false
 	}
 
 	return "", false

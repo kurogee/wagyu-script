@@ -125,6 +125,7 @@ arr = array ("apple" "banana" "orange" "grape");
 | search(配列 値) | 配列の中で値が何番目にあるかを返します。ない場合は``-1``を返します | ``#array.search(arr "banana")`` → ``2`` |
 | split(値 区切り文字) | 値を区切り文字で分割し、配列にして返します | ``#array.split(arr ",")`` → ``("apple" "banana" "orange" "grape")`` |
 | join(配列 区切り文字) | 配列を区切り文字で結合し、文字列にして返します | ``#array.join(arr ",")`` → ``"apple,banana,orange,grape"`` |
+| same(配列1 配列2) | 配列1と配列2が同じ要素を持っているかどうかを返します | ``#array.same(arr arr)`` → ``true`` |
 
 ### regex パッケージ
 regex パッケージでは正規表現を使った文字列の操作をします。表の``関数名``欄では省略しますが関数の形は``#regex.関数名``の形です。
