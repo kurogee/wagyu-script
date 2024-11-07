@@ -1,2 +1,4 @@
 github.com/kurogee/wagyu-script/system_split v0.0.0-20240810104005-e4db7201ffda h1:/YjhF/ivQyV5lBkNalxvIvPKRBKwAA2gBfV3ongcDbw=
 github.com/kurogee/wagyu-script/system_split v0.0.0-20240810104005-e4db7201ffda/go.mod h1:kxbMT5sfP0Vl5AdeLAFg63iRLYeJlf3W2knBt+igiLg=
+github.com/kurogee/wagyu-script/system_split v0.0.0-20241107123748-542efe06e4ca h1:UCbUEx01GSMMSQJC2P+xrp++hFK2uc5cuBbJCjTMfuM=
+github.com/kurogee/wagyu-script/system_split v0.0.0-20241107123748-542efe06e4ca/go.mod h1:kxbMT5sfP0Vl5AdeLAFg63iRLYeJlf3W2knBt+igiLg=

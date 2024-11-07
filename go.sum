@@ -18,3 +18,5 @@ github.com/kurogee/wagyu-script/string v0.0.0-20240811120455-23e4f2831ec8 h1:78Z
 github.com/kurogee/wagyu-script/string v0.0.0-20240811120455-23e4f2831ec8/go.mod h1:uyu6Uaxmk7kM9M1t6Yar6RPLr4gL+OQQN8BiSjrVdog=
 github.com/kurogee/wagyu-script/system_split v0.0.0-20240811120455-23e4f2831ec8 h1:8MhoeGB+erdX710pyawKdWmv1HMu7PCtGHyeYWZ+ZNs=
 github.com/kurogee/wagyu-script/system_split v0.0.0-20240811120455-23e4f2831ec8/go.mod h1:kxbMT5sfP0Vl5AdeLAFg63iRLYeJlf3W2knBt+igiLg=
+github.com/kurogee/wagyu-script/system_split v0.0.0-20241107123748-542efe06e4ca h1:UCbUEx01GSMMSQJC2P+xrp++hFK2uc5cuBbJCjTMfuM=
+github.com/kurogee/wagyu-script/system_split v0.0.0-20241107123748-542efe06e4ca/go.mod h1:kxbMT5sfP0Vl5AdeLAFg63iRLYeJlf3W2knBt+igiLg=

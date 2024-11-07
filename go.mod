@@ -12,5 +12,5 @@ require (
 	github.com/kurogee/wagyu-script/maths v0.0.0-20240811120455-23e4f2831ec8
 	github.com/kurogee/wagyu-script/regex v0.0.0-20240811120455-23e4f2831ec8
 	github.com/kurogee/wagyu-script/string v0.0.0-20240811120455-23e4f2831ec8
-	github.com/kurogee/wagyu-script/system_split v0.0.0-20240811120455-23e4f2831ec8
+	github.com/kurogee/wagyu-script/system_split v0.0.0-20241107123748-542efe06e4ca
 )
