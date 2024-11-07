@@ -1,3 +1,15 @@
+v1.8.0 (2024-11-07)
+---
+ - シャープ関数instantを追加しました
+ - 演算部分の表記を修正しました　今までのコードが動かなくなる可能性があります
+    ``#(1 + 2)`` -> ``##(1 + 2)``
+ - バージョン表記``beta``を削除しました
+ - 英語版のドキュメントは更新されていません / English version of the document has **not** been updated
+ - docs/get-started.mdを修正しました
+ - docs/sharp-function.mdを修正しました
+ - docs/common-function.mdを修正しました
+ - docs/sample-code.mdを修正しました
+
 v1.7.0-beta (2024-08-11)
 ---
  - 辞書型がeach文に対応しました

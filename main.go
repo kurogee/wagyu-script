@@ -5,6 +5,7 @@ import (
 	"strings"
 	"regexp"
 	"strconv"
+	"math"
 	"math/rand/v2"
 	"os"
 
@@ -86,6 +87,10 @@ func giveSymbols(input string) string {
 	input = strings.ReplaceAll(input, "\\\\", "\\")
 	input = strings.ReplaceAll(input, "\\\"", "\"")
 	input = strings.ReplaceAll(input, "\\'", "'")
+	input = strings.ReplaceAll(input, "\\`", "`")
+	input = strings.ReplaceAll(input, "\\r", "\r")
+	input = strings.ReplaceAll(input, "\\(", "(")
+	input = strings.ReplaceAll(input, "\\)", ")")
 	
 	return input
 }
@@ -161,7 +166,7 @@ func parser(code string) (p Parse) {
 func variables_replacer(variables *map[string]string, target string, target_in_quote, add_quotes bool) string {
 	if target_in_quote {
 		if add_quotes {
-			return "\"" + target + "\""
+			return target
 		}
 
 		// 両端のクオートを取り除く
@@ -257,7 +262,7 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 	for i, arg2 := range(args) {
 		if strings.HasPrefix(arg2, "#") {
 			func_name2 := strings.Split(arg2, "(")[0][1:]
-			re := regexp.MustCompile(`^#[^\(]*\(|\)$`)
+			re := regexp.MustCompile(`^#.+?\(|\)$`)
 
 			args2 := split(re.ReplaceAllString(arg2, ""))
 			args2_str, args2_in_quote := divide_split(args2)
@@ -334,15 +339,19 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 		// args[0] は文字列
 		// 文字列の長さを返す
 		return strconv.Itoa(len(variables_replacer(variables, args[0], args_in_quote2[0], false))), args_in_quote2[0]
-	} else if func_name == "calc" {
-		// args[0] は計算式
-		// args[1:] は変数名
-
-		if len(args) == 1 {
-			return calc_expression(variables_replacer(variables, args[0], args_in_quote2[0], true), map[string]interface{}{}), false
-		} else if len(args) > 1 {
-			return calc_expression(variables_replacers((*variables), args[0], args[1:], args_in_quote2[1:]), map[string]interface{}{}), false
+	} else if func_name == "calc" || func_name == "c" || func_name == "#" {
+		// argsには計算式が配列で入っている
+		for i, arg := range(args) {
+			args[i] = variables_replacer(variables, arg, args_in_quote2[i], false)
 		}
+
+		return calc_expression(strings.Join(args, " "), map[string]interface{}{}), false
+
+		// if len(args) == 1 {
+		// 	return calc_expression(variables_replacer(variables, args[0], args_in_quote2[0], true), map[string]interface{}{}), false
+		// } else if len(args) > 1 {
+		// 	return calc_expression(variables_replacers((*variables), args[0], args[1:], args_in_quote2[1:]), map[string]interface{}{}), false
+		// }
 	} else if func_name == "from" {
 		// 引数の1番目の数字から2番目の数字までの連番の配列を作成
 		// args[0] は開始番号、args[1] は終了番号
@@ -515,13 +524,263 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 		}
 
 		return "false", false
+	} else if func_name == "instant" {
+		// args[0] は関数の中身 -> returnの返り値を返す
+		// 引数はなし
+		// codesに波括弧を取ったものを格納
+		args[0] = strings.Trim(args[0], "{}")
+		codes := splitOutsideSemicolons(args[0])
+
+		for _, code := range(codes) {
+			p := parser(code)
+			status := p.runner(variables, functions, sharps, &func_name, false)
+			if status == 1 {
+				break
+			}
+		}
+
+		return (*variables)["0__return__"], false
+	} else if func_name == "add" { // ここから演算の糖衣構文的な関数
+		// args[0]は値1、args[1]は値2（変数もあり）
+		// 値1と値2を足した値を返す
+		val1, err := strconv.Atoi(variables_replacer(variables, args_str[0], args_in_quote2[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in add. [1] / 1番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		val2, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
+		if err != nil {
+			fmt.Println("The error occurred in add. [2] / 2番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		return strconv.Itoa(val1 + val2), false
+	} else if func_name == "sub" {
+		// args[0]は値1、args[1]は値2（変数もあり）
+		// 値1から値2を引いた値を返す
+		val1, err := strconv.Atoi(variables_replacer(variables, args_str[0], args_in_quote2[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in sub. [1] / 1番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		val2, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
+		if err != nil {
+			fmt.Println("The error occurred in sub. [2] / 2番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		return strconv.Itoa(val1 - val2), false
+	} else if func_name == "mul" {
+		// args[0]は値1、args[1]は値2（変数もあり）
+		// 値1と値2を掛けた値を返す
+		val1, err := strconv.Atoi(variables_replacer(variables, args_str[0], args_in_quote2[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in mul. [1] / 1番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		val2, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
+		if err != nil {
+			fmt.Println("The error occurred in mul. [2] / 2番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		return strconv.Itoa(val1 * val2), false
+	} else if func_name == "div" {
+		// args[0]は値1、args[1]は値2（変数もあり）
+		// 値1を値2で割った値を返す
+		val1, err := strconv.Atoi(variables_replacer(variables, args_str[0], args_in_quote2[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in div. [1] / 1番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		val2, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
+		if err != nil {
+			fmt.Println("The error occurred in div. [2] / 2番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		return strconv.Itoa(val1 / val2), false
+	} else if func_name == "mod" {
+		// args[0]は値1、args[1]は値2（変数もあり）
+		// 値1を値2で割った余りを返す
+		val1, err := strconv.Atoi(variables_replacer(variables, args_str[0], args_in_quote2[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in mod. [1] / 1番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		val2, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
+		if err != nil {
+			fmt.Println("The error occurred in mod. [2] / 2番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		return strconv.Itoa(val1 % val2), false
+	} else if func_name == "pow" {
+		// args[0]は値1、args[1]は値2（変数もあり）
+		// 値1の値2乗を返す
+		val1, err := strconv.Atoi(variables_replacer(variables, args_str[0], args_in_quote2[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in pow. [1] / 1番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		val2, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
+		if err != nil {
+			fmt.Println("The error occurred in pow. [2] / 2番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		return strconv.Itoa(int(math.Pow(float64(val1), float64(val2)))), false
+	} else if func_name == "eq" {
+		// args[0]は値1、args[1]は値2（変数もあり）
+		// 値1と値2が等しいか確認
+		val1 := variables_replacer(variables, args_str[0], args_in_quote2[0], false)
+		val2 := variables_replacer(variables, args_str[1], args_in_quote2[1], false)
+
+		if val1 == val2 {
+			return "true", false
+		}
+
+		return "false", false
+	} else if func_name == "neq" {
+		// args[0]は値1、args[1]は値2（変数もあり）
+		// 値1と値2が等しくないか確認
+		val1 := variables_replacer(variables, args_str[0], args_in_quote2[0], false)
+		val2 := variables_replacer(variables, args_str[1], args_in_quote2[1], false)
+
+		if val1 != val2 {
+			return "true", false
+		}
+
+		return "false", false
+	} else if func_name == "gt" {
+		// args[0]は値1、args[1]は値2（変数もあり）
+		// 値1が値2より大きいか確認
+		val1, err := strconv.Atoi(variables_replacer(variables, args_str[0], args_in_quote2[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in gt. [1] / 1番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		val2, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
+		if err != nil {
+			fmt.Println("The error occurred in gt. [2] / 2番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		if val1 > val2 {
+			return "true", false
+		}
+
+		return "false", false
+	} else if func_name == "lt" {
+		// args[0]は値1、args[1]は値2（変数もあり）
+		// 値1が値2より小さいか確認
+		val1, err := strconv.Atoi(variables_replacer(variables, args_str[0], args_in_quote2[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in lt. [1] / 1番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		val2, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
+		if err != nil {
+			fmt.Println("The error occurred in lt. [2] / 2番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		if val1 < val2 {
+			return "true", false
+		}
+
+		return "false", false
+	} else if func_name == "ge" {
+		// args[0]は値1、args[1]は値2（変数もあり）
+		// 値1が値2以上か確認
+		val1, err := strconv.Atoi(variables_replacer(variables, args_str[0], args_in_quote2[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in ge. [1] / 1番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		val2, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
+		if err != nil {
+			fmt.Println("The error occurred in ge. [2] / 2番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		if val1 >= val2 {
+			return "true", false
+		}
+
+		return "false", false
+	} else if func_name == "le" {
+		// args[0]は値1、args[1]は値2（変数もあり）
+		// 値1が値2以下か確認
+		val1, err := strconv.Atoi(variables_replacer(variables, args_str[0], args_in_quote2[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in le. [1] / 1番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		val2, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
+		if err != nil {
+			fmt.Println("The error occurred in le. [2] / 2番目の引数が(変数の中の値が)数値でないためエラーが発生しました。")
+			fmt.Println(err)
+		}
+
+		if val1 <= val2 {
+			return "true", false
+		}
+
+		return "false", false
+	} else if func_name == "and" {
+		// args[0]は値1、args[1]は値2（変数もあり）
+		// 値1と値2が両方ともtrueか確認
+		val1 := variables_replacer(variables, args_str[0], args_in_quote2[0], false)
+		val2 := variables_replacer(variables, args_str[1], args_in_quote2[1], false)
+
+		if val1 == "true" && val2 == "true" {
+			return "true", false
+		}
+
+		return "false", false
+	} else if func_name == "or" {
+		// args[0]は値1、args[1]は値2（変数もあり）
+		// 値1と値2のどちらかがtrueか確認
+		val1 := variables_replacer(variables, args_str[0], args_in_quote2[0], false)
+		val2 := variables_replacer(variables, args_str[1], args_in_quote2[1], false)
+
+		if val1 == "true" || val2 == "true" {
+			return "true", false
+		}
+
+		return "false", false
+	} else if func_name == "not" {
+		// args[0]は値（変数もあり）
+		// 値がfalseか確認
+		val := variables_replacer(variables, args_str[0], args_in_quote2[0], false)
+
+		if val == "false" {
+			return "true", false
+		}
+
+		return "false", false
+	} else if func_name == "parens" {
+		// args[0]は値（変数もあり）
+		// 値の計算式を返す
+		return variables_replacer(variables, args_str[0], args_in_quote2[0], false), false
 	} else if func_name == "" {
 		for i, arg := range(args) {
 			args[i] = variables_replacer(variables, arg, args_in_quote2[i], true)
 		}
-
+	
 		var formula string = strings.Join(args, " ")
-
+	
 		return calc_expression(formula, map[string]interface{}{}), false
 	// もしもfunc_nameがsharpsに含まれていたら、その関数を実行
 	} else if _, ok := (*sharps)[func_name]; ok {
@@ -605,7 +864,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 		if name != "while" && name != "if" && name != "match" {
 			if strings.HasPrefix(val, "#") {
 				func_name := strings.Split(val, "(")[0][1:]
-				re := regexp.MustCompile(`^#[^\(]*\(|\)$`)
+				re := regexp.MustCompile(`^#.+?\(|\)$`)
 
 				args := split(re.ReplaceAllString(val, ""))
 				args_str, args_in_quote := divide_split(args)
@@ -666,7 +925,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 			for i, val := range(value) {
 				if strings.HasPrefix(val, "#") {
 					func_name := strings.Split(val, "(")[0][1:]
-					re := regexp.MustCompile(`^#[^\(]*\(|\)$`)
+					re := regexp.MustCompile(`^#.+?\(|\)$`)
 					args := split(re.ReplaceAllString(val, ""))
 					args_str, args_in_quote := divide_split(args)
 					value[i], value_in_quotes[i] = sharp_functions(func_name, args_str, args_in_quote, variables, functions, sharps)
@@ -1324,7 +1583,7 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 					// もし#があったら、その関数を実行してから格納する
 					if strings.HasPrefix(splited_value[i], "#") {
 						func_name := strings.Split(splited_value[i], "(")[0][1:]
-						re := regexp.MustCompile(`^#[^\(]*\(|\)$`)
+						re := regexp.MustCompile(`^#.+?\(|\)$`)
 
 						args := split(re.ReplaceAllString(splited_value[i], ""))
 						args_str, args_in_quote := divide_split(args)
@@ -1477,12 +1736,17 @@ func splitOutsideSemicolons(input string) []string {
 	// 一番外側にあるセミコロンで分割する
 	// ただし、波括弧内にあるセミコロンは無視し、波括弧内をひとかたまりとして扱う
 
+	if input[0] == '{' {
+		input = input[1:]
+	}
+
 	var result []string
 	var count int = 0
 	var mem string = ""
 
 	// \;を__SEMICOLON__に変換
 	re := regexp.MustCompile(`\\;`)
+	
 	input = re.ReplaceAllString(input, "__SEMICOLON__")
 
 	for _, val := range(strings.Split(input, ";")) {
@@ -1513,7 +1777,6 @@ func splitOutsideSemicolons(input string) []string {
 func main() {
 	// コードが書かれたファイルを読み込む
 	// コマンドラインでファイル名を指定する
-	// 例: このファイル run --path ファイル名.wg
 	var code string = ""
 	var path string
 

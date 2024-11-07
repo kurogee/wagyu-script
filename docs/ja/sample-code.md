@@ -8,8 +8,8 @@ y = array #from(1 9);
 
 each y > i {
     each x > j {
-        res = value #(i * j);
-        printf ":1::2:  " #repeat("0" #(2 - #len(res))) res;
+        res = value ##(i * j);
+        printf ":1::2:  " #repeat("0" ##(2 - #len(res))) res;
     };
     println "";
 };
@@ -18,14 +18,14 @@ each y > i {
 ### 任意の数が素数かどうかを判定するプログラム
 ```
 sharp is_prime ($n) {
-    if #($n < 2) { return false; };
-    if #($n == 2) { return true };
-    if #($n % 2 == 0) { return false };
+    if ##($n < 2) { return false; };
+    if ##($n == 2) { return true };
+    if ##($n % 2 == 0) { return false };
 
     mem = #math.sqrt($n);
     i = 3;
-    while #(i <= mem) {
-        if #($n % i == 0) { return false };
+    while ##(i <= mem) {
+        if ##($n % i == 0) { return false };
         i = add 2;
     };
 
@@ -47,7 +47,7 @@ fnc fib ($n) {
 
         tmp = a;
         a = b;
-        b = #(tmp + b);
+        b = ##(tmp + b);
     };
 };
 

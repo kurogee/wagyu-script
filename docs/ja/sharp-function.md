@@ -10,9 +10,9 @@
 ```
 ※ 関数名と引数の間にスペースは開けません。（スペースが開けられるように、只今検討中です。）
 
-例えば、get-started.mdの例で出てくる``#(2 + 3)``のような形の関数を例に取ると、以下のような形になります。
+例えば、get-started.mdの例で出てくる``##(2 + 3)``のような形の関数を例に取ると、以下のような形になります。
 ```
-println #(2 + 3);
+println ##(2 + 3);
 ```
 こうすることで、``println``の関数の引数に``2 + 3``の計算結果つまり``5``が入ることになります。これがシャープ関数の基本的な使い方です。
 
@@ -41,6 +41,7 @@ num = value 10;
 | repeat(文字列 繰り返し回数) | 文字列を指定回数繰り返した文字列を返します | ``#repeat("Hello, " 3)`` → ``"Hello, Hello, Hello, "`` |
 | all(配列もしくは任意個の引数) | 引数が全て``true``もしくは``1``の場合``true``を返します | ``#all(true false true)`` → ``false`` |
 | any(配列もしくは任意個の引数) | 引数の中に``true``もしくは``1``が1つでもある場合``true``を返します | ``#any(true false true)`` → ``true`` |
+| instant({実行するコード}) | 引数に入れたコードを実行し、最終的に``return``で返された値を返します | ``#instant({return ##(2 + 3)})`` → ``5`` |
 
 自分で関数を作る
 ---
@@ -58,7 +59,7 @@ sharp 関数名 (引数1 引数2 ...) {
 以下は、引数に入れた2数の和を返すシャープ関数の例です。
 ```
 sharp add ($a $b) {
-    return #($a + $b);
+    return ##($a + $b);
 };
 
 println #add(2 3);
@@ -182,43 +183,9 @@ y = array #from(1 9);
 
 each y > i {
     each x > j {
-        res = value #(i * j);
-        printf ":1::2:  " #repeat("0" #(2 - #len(res))) res;
+        res = value ##(i * j);
+        printf ":1::2:  " #repeat("0" ##(2 - #len(res))) res;
     };
     println "";
 };
-```
-
-### シャープ関数を使った素数判定（上級者向け）
-```
-sharp is_prime ($num) {
-    match $num
-    case (2 3 5 7) {
-        return "true";
-    };
-
-    if #($num == 1) {
-        return "false";
-    } else {
-        match $num
-        case #(_ % 2 == 0) {
-            return "false";
-        }
-        case #(_ % 3 == 0) {
-            return "false";
-        }
-        case #(_ % 5 == 0) {
-            return "false";
-        }
-        case #(_ % 7 == 0) {
-            return "false";
-        }
-        default {
-            return "true";
-        };
-    };
-};
-
-println #is_prime(89);
-// -> 「true」が出力されます。;
 ```
