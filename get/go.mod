@@ -2,4 +2,6 @@ module github.com/kurogee/wagyu-script/get
 
 go 1.22.5
 
-require github.com/kurogee/wagyu-script/system_split v0.0.0-20241107123748-542efe06e4ca
+replace github.com/kurogee/wagyu-script/system_split => ../system_split
+
+require github.com/kurogee/wagyu-script/system_split v1.0.0

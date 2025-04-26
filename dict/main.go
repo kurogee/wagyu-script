@@ -15,7 +15,7 @@ var divide_split = system_split.Divide_split
 func variables_replacer(variables *map[string]string, target string, target_in_quote, add_quotes bool) string {
 	if target_in_quote {
 		if add_quotes {
-			return "\"" + target + "\""
+			return target
 		}
 
 		// 両端のクオートを取り除く
@@ -48,14 +48,22 @@ func ParseDict(dict string, variables *map[string]string) map[string]string {
 	// dictは、"key1" : "value1" "key2" : "value2" "key3" : "value3"のような形式
 	// まずは、dictを:がないスペースで分割する
 	// ""はあってもなくてもいい
+	
+	// まずはクオート内のスペースを置き換える
+	re := regexp.MustCompile(`"[^"]+"`)
+	matches := re.FindAllString(dict, -1)
+	for _, match := range matches {
+		dict = strings.ReplaceAll(dict, match, strings.ReplaceAll(match, " ", "__SPACE__"))
+	}
+	
 	dict = dict + " "
 
-	re := regexp.MustCompile(`[^\s]+\s*:\s*[^\s]+\s`)
-	matches := re.FindAllStringSubmatch(dict, -1)
+	re = regexp.MustCompile(`[^\s]+\s*:\s*[^\s]+\s`)
+	matches2 := re.FindAllStringSubmatch(dict, -1)
 
 	// keyとvalueを取り出す
 	dict_map := make(map[string]string)
-	for _, match := range matches {
+	for _, match := range matches2 {
 		// matchを:で分割する
 		re = regexp.MustCompile(`([^\s]+)\s*:\s*([^\s]+)\s`)
 		match = re.FindStringSubmatch(match[0])
@@ -72,6 +80,18 @@ func ParseDict(dict string, variables *map[string]string) map[string]string {
 		value = variables_replacer(variables, splited_value[0], value_in_quote[0], false)
 
 		dict_map[key] = value
+	}
+
+	// クオート内のスペースを元に戻す
+	for key, value := range dict_map {
+		if strings.Contains(value, "__SPACE__") {
+			dict_map[key] = strings.ReplaceAll(value, "__SPACE__", " ")
+		}
+
+		if strings.Contains(key, "__SPACE__") {
+			dict_map[strings.ReplaceAll(key, "__SPACE__", " ")] = value
+			delete(dict_map, key)
+		}
 	}
 
 	return dict_map

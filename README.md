@@ -33,11 +33,11 @@ println "Hello, World!";
 ### FizzBuzz
 ```
 each #from(1 100) > i {
-    if #(i % 15 == 0) {
+    if ##(i % 15 == 0) {
         println "FizzBuzz";
-    } elif #(i % 5 == 0) {
+    } elif ##(i % 5 == 0) {
         println "Buzz";
-    } elif #(i % 3 == 0) {
+    } elif ##(i % 3 == 0) {
         println "Fizz";
     } else {
         println i;

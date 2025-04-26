@@ -106,6 +106,62 @@ func Sharp(func_name string, args []string, args_in_quote []bool, variables *map
 		now := time.Now()
 		// Unix時間にフォーマットして返す
 		return strconv.FormatInt(now.Unix(), 10), false
+	} else if func_name == "getYear" {
+		// args[0]（日付が入っている）から年を取得
+		t, err := time.Parse(_set_format("YYYY-MM-DD"), variables_replacer(variables, args[0], args_in_quote[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in getYear function in date package. [2]")
+		}
+
+		return strconv.Itoa(t.Year()), false
+	} else if func_name == "getMonth" {
+		// args[0]（日付が入っている）から月を取得
+		t, err := time.Parse(_set_format("YYYY-MM-DD"), variables_replacer(variables, args[0], args_in_quote[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in getMonth function in date package. [2]")
+		}
+
+		return strconv.Itoa(int(t.Month())), false
+	} else if func_name == "getDay" {
+		// args[0]（日付が入っている）から日を取得
+		t, err := time.Parse(_set_format("YYYY-MM-DD"), variables_replacer(variables, args[0], args_in_quote[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in getDay function in date package. [2]")
+		}
+
+		return strconv.Itoa(t.Day()), false
+	} else if func_name == "getHour" {
+		// args[0]（日付が入っている）から時間を取得
+		t, err := time.Parse(_set_format("YYYY-MM-DD HH:mm:SS"), variables_replacer(variables, args[0], args_in_quote[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in getHour function in date package. [2]")
+		}
+
+		return strconv.Itoa(t.Hour()), false
+	} else if func_name == "getMinute" {
+		// args[0]（日付が入っている）から分を取得
+		t, err := time.Parse(_set_format("YYYY-MM-DD HH:mm:SS"), variables_replacer(variables, args[0], args_in_quote[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in getMinute function in date package. [2]")
+		}
+
+		return strconv.Itoa(t.Minute()), false
+	} else if func_name == "getSecond" {
+		// args[0]（日付が入っている）から秒を取得
+		t, err := time.Parse(_set_format("YYYY-MM-DD HH:mm:SS"), variables_replacer(variables, args[0], args_in_quote[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in getSecond function in date package. [2]")
+		}
+
+		return strconv.Itoa(t.Second()), false
+	} else if func_name == "getDow" || func_name == "getDayOfWeek" {
+		// args[0]（日付が入っている）から曜日を取得
+		t, err := time.Parse(_set_format("YYYY-MM-DD"), variables_replacer(variables, args[0], args_in_quote[0], false))
+		if err != nil {
+			fmt.Println("The error occurred in getDow (getDayOfWeek) function in date package. [2]")
+		}
+
+		return strconv.Itoa(int(t.Weekday())), false
 	}
 
 	return "", false
@@ -304,9 +360,11 @@ func Run(name string, value []string, value_in_quotes []bool, variables *map[str
 			return
 		}
 		
-		value_array := strings.Split(variables_replacer(variables, value[1], value_in_quotes[1], false), " ")[1:]
+		value_array := strings.Split(variables_replacer(variables, value[1], value_in_quotes[1], false), " ")
 		// value_arrayを2桁に変換 1桁の場合は前に0を付ける
 		for i, v := range(value_array) {
+			// 変数に変えられるなら変数に変える
+			value_array[i] = variables_replacer(variables, v, false, false)
 			if len(v) == 1 {
 				value_array[i] = "0" + v
 			}

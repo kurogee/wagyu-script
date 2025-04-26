@@ -145,7 +145,7 @@ func Split(input string) []map[string]bool {
                 bracketStack = append(bracketStack, matchingParen(char))
 
             case ')', '}', ']':
-                // 追加: 閉じ括弧が直接現れた場合の処理
+                // 閉じ括弧が直接現れた場合の処理
                 if inParen || inBracket {
                     if inParen {
                         buffer.WriteRune(char)
@@ -204,7 +204,7 @@ func Split(input string) []map[string]bool {
         tokens_map = append(tokens_map, map[string]bool{token: inQuotes[i]})
     }
 
-    fmt.Print("")
+    fmt.Print()
     return tokens_map
 }
 

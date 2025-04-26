@@ -2,22 +2,24 @@ package main
 
 import (
 	"fmt"
-	"strings"
-	"regexp"
-	"strconv"
 	"math"
 	"math/rand/v2"
 	"os"
+	"regexp"
+	"slices"
+	"strconv"
+	"strings"
 
 	system_split "github.com/kurogee/wagyu-script/system_split"
 
 	array_pack "github.com/kurogee/wagyu-script/array"
 	date_pack "github.com/kurogee/wagyu-script/date"
+	dict_pack "github.com/kurogee/wagyu-script/dict"
 	file_pack "github.com/kurogee/wagyu-script/file"
-	string_pack "github.com/kurogee/wagyu-script/string"
 	get_pack "github.com/kurogee/wagyu-script/get"
 	regex_pack "github.com/kurogee/wagyu-script/regex"
-	dict_pack "github.com/kurogee/wagyu-script/dict"
+	string_pack "github.com/kurogee/wagyu-script/string"
+
 	// http_pack "github.com/kurogee/wagyu-script/http"
 
 	math_sharp_functions "github.com/kurogee/wagyu-script/maths"
@@ -72,13 +74,13 @@ var packages_sharp_functions = Package_sharp_functions{
 }
 
 func contains(s []string, e string) bool {
-	for _, a := range(s) {
-		if a == e {
-			return true
-		}
-	}
+	// for _, a := range(s) {
+	// 	if a == e {
+	// 		return true
+	// 	}
+	// }
 
-	return false
+	return slices.Contains(s, e)
 }
 
 func giveSymbols(input string) string {
@@ -147,7 +149,7 @@ func parser(code string) (p Parse) {
 	p.parsed_in_quotes = divided_code_bool
 
 	// もしdivided_code[1]が記号ではなかったら、divided_code[1:]をvalueに格納しconjunctionには<を格納
-	re = regexp.MustCompile(`^[><=]$`)
+	re = regexp.MustCompile(`^[><=]|->$`)
 	if re.MatchString(divided_code_str[1]) {
 		p.parsed_meaning.name = strings.ReplaceAll(divided_code_str[0], " ", "")
 		p.parsed_meaning.conjunction = divided_code_str[1]
@@ -285,7 +287,7 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 		return result, result_bool
 	}
 
-	if func_name == "arrayAt" {
+	if func_name == "arrayAt" || func_name == "arrAt" {
 		// args[0] は配列名、args[1] はインデックス
 		// インデックスは数値である必要がある
 		index, err := strconv.Atoi(variables_replacer(variables, args_str[1], args_in_quote2[1], false))
@@ -321,7 +323,7 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 		mem = "\"" + mem + "\""
 
 		return mem, true
-	} else if func_name == "arrayLen" {
+	} else if func_name == "arrayLen" || func_name == "arrLen" {
 		// args[0] は配列名
 		// 配列名が存在するか確認
 		_, ok := (*variables)[args[0]]
@@ -540,7 +542,7 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 		}
 
 		return (*variables)["0__return__"], false
-	} else if func_name == "add" { // ここから演算の糖衣構文的な関数
+	} else if func_name == "add" { // ここから演算の糖衣構文的な関数 ========================================
 		// args[0]は値1、args[1]は値2（変数もあり）
 		// 値1と値2を足した値を返す
 		val1, err := strconv.Atoi(variables_replacer(variables, args_str[0], args_in_quote2[0], false))
@@ -782,7 +784,7 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 		var formula string = strings.Join(args, " ")
 	
 		return calc_expression(formula, map[string]interface{}{}), false
-	// もしもfunc_nameがsharpsに含まれていたら、その関数を実行
+	// もしもfunc_nameがsharpsに含まれていたら、その関数を実行 ========================================
 	} else if _, ok := (*sharps)[func_name]; ok {
 		// args[0:] は引数
 		// sharps[func_name][0] は引数の名前（スペース区切り）、sharps[func_name][1] は関数の中身
@@ -830,7 +832,7 @@ func sharp_functions(func_name string, args []string, args_in_quote []bool, vari
 
 func (p Parse) runner(variables *map[string]string, functions *map[string][]string, sharps *map[string][]string, before_func_name *string, top bool) int {
 	/*
-		returnの数字の意味
+		returnの戻り値の意味
 		0: 正常終了
 		1: return文があった、関数を抜ける
 		2: while文をbreakする
@@ -1722,6 +1724,40 @@ func (p Parse) runner(variables *map[string]string, functions *map[string][]stri
 				result := value1_float + variables_value_float
 				(*variables)[name] = strconv.FormatFloat(result, 'f', 10, 64)
 			}
+		}
+	} else if conjunction == "->" {
+		// 左辺の変数の値の右辺番目の文字を返す
+		// name は変数名、value[0] はインデックス
+		// インデックスが数値でない場合は-1を返す
+		var index int
+		var err error
+		mem := variables_replacer(variables, value[0], value_in_quotes[0], false)
+		index, err = strconv.Atoi(mem)
+		if err != nil {
+			fmt.Println("The error occurred in '->'. [3] / インデックスが数値でないためエラーが発生しました。")
+			fmt.Println(err)
+			return -1
+		}
+
+		if index < 0 {
+			fmt.Println("The error occurred in '->'. [4] / インデックスが負の数のためエラーが発生しました。")
+			fmt.Println("The index is negative number.")
+			return -1
+		}
+
+		// インデックスが文字列の長さより大きい場合はエラーを返す
+		if len((*variables)[name]) <= index {
+			fmt.Println("The error occurred in '->'. [5] / インデックスが文字列の長さを超えているためエラーが発生しました。")
+			fmt.Println("The index is out of range.")
+			return -1
+		}
+		
+		// 配列型の変数名だった場合は、その配列の中から取り出す
+		if strings.Contains((*variables)[name], " ") {
+			array, _ := divide_split(split((*variables)[name]))
+			(*variables)["0__return__"] = array[index]
+		} else {
+			(*variables)["0__return__"] = string((*variables)[name][index])
 		}
 	}
 

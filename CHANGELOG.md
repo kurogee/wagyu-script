@@ -1,3 +1,9 @@
+v1.9.0 (2025-04-26)
+---
+ - date関数にシャープ関数をいくつか追加しました
+ - dictパッケージのバグを修正しました
+ - 上記に伴いドキュメントを更新しました
+
 v1.8.1 (2024-11-07)
 ---
  - v1.8.0でプログラムが上手く実行できないバグがあったので修正しました
@@ -9,7 +15,7 @@ v1.8.0 (2024-11-07)
  - 演算部分の表記を修正しました　今までのコードが動かなくなる可能性があります
     ``#(1 + 2)`` -> ``##(1 + 2)``
  - バージョン表記``beta``を削除しました
- - 英語版のドキュメントは更新されていません / English version of the document has **not** been updated
+ - 英語版のドキュメントは更新されていません / English version of the document has **NOT** been updated
  - docs/get-started.mdを修正しました
  - docs/sharp-function.mdを修正しました
  - docs/common-function.mdを修正しました
